@@ -1,3 +1,4 @@
+
 using System;
 using TMPro;
 using Unity.Netcode;
@@ -9,12 +10,14 @@ using Unity.Services.Relay.Models;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using WebSocketSharp;
 
 public class RelayManager : MonoBehaviour
 {
     [Header("UI Components")]
     [SerializeField] private Button[] buttons;
     [SerializeField] private TMP_InputField input;
+    [SerializeField] private TMP_InputField username;
     [SerializeField] private TMP_Text code;
 
     private string _joinCode;
@@ -28,17 +31,11 @@ public class RelayManager : MonoBehaviour
         if (!AuthenticationService.Instance.IsSignedIn)
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
-        NetworkManager.Singleton.OnConnectionEvent += OnConnected;
+        NetworkManager.Singleton.OnConnectionEvent += ConnectionEvent;
 
         buttons[0].onClick.AddListener(StartRelay);
         buttons[1].onClick.AddListener(() => JoinRelay(input.text));
         buttons[2].onClick.AddListener(QuitLobby);
-    }
-
-    private void OnConnected(NetworkManager manager, ConnectionEventData data)
-    {
-        if (data.EventType == ConnectionEvent.ClientConnected)
-            CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
     }
 
     #region Networking
@@ -53,9 +50,6 @@ public class RelayManager : MonoBehaviour
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
 
         NetworkManager.Singleton.StartHost(); // Start the server as a host
-
-        code.text = _joinCode; // Display join code
-        CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
     }
 
     private async void JoinRelay(string joinCode)
@@ -68,17 +62,48 @@ public class RelayManager : MonoBehaviour
 
         NetworkManager.Singleton.StartClient(); // Join server as client
 
-        code.text = joinCode; // Display join code
-        CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
+        _joinCode = joinCode; // Save display code
     }
 
     private void QuitLobby()
     {
-        NetworkManager.Singleton.Shutdown(); // Disconnect client or Shut down server
-        
-        Destroy(NetworkManager.Singleton.gameObject); // Remove network dependencies
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.Shutdown(); // Disconnectt or Stops Server
+            Destroy(NetworkManager.Singleton.gameObject); // Removes the dependant
+        }
 
-        SceneManager.LoadScene(0); // Main menu (creates new network dependencies)
+        SceneManager.LoadScene(0); // Creates a new dependant
+    }
+    #endregion
+
+    #region Events
+    private void ConnectionEvent(NetworkManager manager, ConnectionEventData data)
+    {
+        // Client Connected
+        if (data.EventType == Unity.Netcode.ConnectionEvent.ClientConnected)
+        {
+            if (data.ClientId != manager.LocalClientId) return;
+
+            code.text = _joinCode; // Display join code
+            int plyer = NetStore.Instance.usernames.Count + 1;
+            string sUser = username.text.IsNullOrEmpty() ? $"Player {plyer}" : username.text; // Default username check
+            NetStore.Instance.AddUsernameServerRpc(sUser); // Add username to the list
+            CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
+        }
+        // Client Disconnected
+        else if (data.EventType == Unity.Netcode.ConnectionEvent.ClientDisconnected)
+        {
+            if (manager.IsClient && !manager.IsHost)
+            {
+                Debug.Log("Client detected disconnect - quitting lobby");
+                QuitLobby();
+                return;
+            }
+
+            if (manager.IsServer && manager.IsListening)
+                NetStore.Instance.RemoveUsernameServerRpc(data.ClientId);
+        }
     }
     #endregion
 }
