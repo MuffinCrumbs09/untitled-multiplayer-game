@@ -31,6 +31,6 @@ public class CanvasManager : MonoBehaviour
         if(canvas == Current) return;
         Canvases[(int)Current].enabled = false; // Disable Old
         Canvases[(int)canvas].enabled = true; // Enable New
-        canvas = Current;
+        Current = canvas;
     }
 }
