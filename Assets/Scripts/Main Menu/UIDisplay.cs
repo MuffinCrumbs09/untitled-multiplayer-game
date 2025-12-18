@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using TMPro;
-using System;
 
 public class UIDisplay : MonoBehaviour
 {
@@ -11,21 +10,22 @@ public class UIDisplay : MonoBehaviour
 
     private void Start()
     {
-        NetStore.Instance.usernames.OnListChanged += UpdateNames;
+        NetStore.Instance.playerData.OnListChanged += UpdateNames;
     }
 
     private void OnDestroy()
     {
-        NetStore.Instance.usernames.OnListChanged -= UpdateNames;
+        NetStore.Instance.playerData.OnListChanged -= UpdateNames;
     }
 
-    public void UpdateNames(NetworkListEvent<NetString> changeEvent)
+    public void UpdateNames(NetworkListEvent<NetPlayerData> changeEvent)
     {
         List<string> name = new();
 
-        foreach (string s in NetStore.Instance.usernames)
+        foreach (NetPlayerData data in NetStore.Instance.playerData)
         {
-            name.Add(s);
+            name.Add(data.username);
+            Debug.Log(data.username + " " + data.isSurvivor);
         }
 
         string finalString = string.Join("\n", name);

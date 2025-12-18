@@ -6,10 +6,7 @@ public class NetStore : NetworkBehaviour
 {
     public static NetStore Instance;
     // Global storage
-    public NetworkList<NetString> usernames;
-
-    // Server-Only Storage
-    private Dictionary<ulong, string> _clientIdToName;
+    public NetworkList<NetPlayerData> playerData;
 
     private void Awake()
     {
@@ -18,36 +15,32 @@ public class NetStore : NetworkBehaviour
 
         Instance = this;
 
-        usernames = new();
-        _clientIdToName = new();
+        playerData = new();
     }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void AddUsernameServerRpc(string username, RpcParams rpc = default)
+    public void AddPlayerDataServerRpc(NetPlayerData data, RpcParams rpc = default)
     {
-        _clientIdToName[rpc.Receive.SenderClientId] = username;
-        usernames.Add(username);
+        ulong clientID = rpc.Receive.SenderClientId;
+        data.clientID = clientID;
+        playerData.Add(data);
 
-        Debug.Log($"Added username '{username}' to shared list");
+        Debug.Log($"Added '{data.username}' to shared list");
     }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void RemoveUsernameServerRpc(ulong clientId)
+    public void RemovePlayerDataServerRpc(ulong clientId)
     {
-        if (_clientIdToName.TryGetValue(clientId, out string disconnectedName))
+        for(int i = 0; i < playerData.Count; i++)
         {
-            for (int i = 0; i < usernames.Count; i++)
-                if (usernames[i] == disconnectedName)
-                {
-                    usernames.RemoveAt(i);
-                    _clientIdToName.Remove(clientId);
+            if (playerData[i].clientID == clientId)
+            {
+                string user = playerData[i].username;
+                playerData.RemoveAt(i);
 
-                    Debug.Log($"Removed disconnected player: {disconnectedName}");
-                }
-        }
-        else
-        {
-            Debug.LogWarning($"Attempted to remove ClientId {clientId} but key not found in dictionary.");
+                Debug.Log($"Removed player data of: {user}");
+                break;
+            }
         }
     }
 }

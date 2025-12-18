@@ -86,9 +86,9 @@ public class RelayManager : MonoBehaviour
             if (data.ClientId != manager.LocalClientId) return;
 
             code.text = _joinCode; // Display join code
-            int plyer = NetStore.Instance.usernames.Count + 1;
+            int plyer = NetStore.Instance.playerData.Count + 1;
             string sUser = username.text.IsNullOrEmpty() ? $"Player {plyer}" : username.text; // Default username check
-            NetStore.Instance.AddUsernameServerRpc(sUser); // Add username to the list
+            NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, data.ClientId, !manager.IsHost)); // Add username to the list
             CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
         }
         // Client Disconnected
@@ -102,7 +102,7 @@ public class RelayManager : MonoBehaviour
             }
 
             if (manager.IsServer && manager.IsListening)
-                NetStore.Instance.RemoveUsernameServerRpc(data.ClientId);
+                NetStore.Instance.RemovePlayerDataServerRpc(data.ClientId);
         }
     }
     #endregion
