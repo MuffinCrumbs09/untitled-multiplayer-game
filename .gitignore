@@ -99,3 +99,15 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Unity 6 Specific Cache
+/[Vv]fxCache/
+/[Vv]ideoCache/
+
+# VS Code local history (if using the 'Local History' extension)
+.history/

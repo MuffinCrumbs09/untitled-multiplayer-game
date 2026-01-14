@@ -1,5 +1,5 @@
-
 using System;
+using System.Collections.Generic;
 using TMPro;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -7,96 +7,239 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
+using Unity.Services.Lobbies;
+using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using WebSocketSharp;
 
+/// <summary>
+/// Manages Relay and Lobby services to facilitate multiplayer connections.
+/// </summary>
 public class RelayManager : MonoBehaviour
 {
     [Header("UI Components")]
-    [SerializeField] private Button[] buttons;
+    [SerializeField] private Button startHostButton;
+    [SerializeField] private Button joinClientButton;
+    [SerializeField] private Button quickJoinButton;
+    [SerializeField] private Button quitLobbyButton;
+    [SerializeField] private Button startGameButton;
+
+    [Space]
     [SerializeField] private TMP_InputField input;
     [SerializeField] private TMP_InputField username;
     [SerializeField] private TMP_Text code;
 
+    [Header("Scene Management")]
+    [SerializeField] private string gameplaySceneName = "GameplayScene";
+
     private string _joinCode;
+    private Lobby _currentLobby;
+    private float _heartbeatTimer;
 
     private async void Start()
     {
-        // Connect to unity services
         await UnityServices.InitializeAsync();
 
-        // Sign in if we havent
         if (!AuthenticationService.Instance.IsSignedIn)
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
-        NetworkManager.Singleton.OnConnectionEvent += ConnectionEvent;
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnConnectionEvent += ConnectionEvent;
+        }
 
-        buttons[0].onClick.AddListener(StartRelay);
-        buttons[1].onClick.AddListener(() => JoinRelay(input.text));
-        buttons[2].onClick.AddListener(QuitLobby);
+        if (startHostButton)
+            startHostButton.onClick.AddListener(StartRelayAndLobby);
+
+        if (joinClientButton)
+            joinClientButton.onClick.AddListener(() => JoinRelay(input.text));
+
+        if (quickJoinButton)
+            quickJoinButton.onClick.AddListener(QuickJoinLobby);
+
+        if (quitLobbyButton)
+            quitLobbyButton.onClick.AddListener(QuitLobby);
+
+        if (startGameButton)
+        {
+            startGameButton.onClick.AddListener(StartGame);
+            startGameButton.gameObject.SetActive(false);
+        }
     }
 
-    #region Networking
-    private async void StartRelay()
+    private void Update()
     {
-        Allocation allocation = await RelayService.Instance.CreateAllocationAsync(3); // Create a room with 3 peers and 1 host
+        HandleLobbyHeartbeat();
+    }
 
-        _joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId); // Get the join code
+    private void OnDestroy()
+    {
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnConnectionEvent -= ConnectionEvent;
+        }
+    }
 
-        // Create and set relay server data
-        var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
-        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+    #region Lobby & Relay Integration
 
-        NetworkManager.Singleton.StartHost(); // Start the server as a host
+    private async void StartRelayAndLobby()
+    {
+        try
+        {
+            Allocation allocation =
+                await RelayService.Instance.CreateAllocationAsync(3);
+
+            _joinCode =
+                await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+
+            var relayServerData =
+                AllocationUtils.ToRelayServerData(allocation, "dtls");
+
+            NetworkManager.Singleton.GetComponent<UnityTransport>()
+                .SetRelayServerData(relayServerData);
+
+            NetworkManager.Singleton.StartHost();
+            Debug.Log($"Host Started. Relay Code: {_joinCode}");
+
+            CreateLobbyOptions options = new CreateLobbyOptions();
+            options.Data = new Dictionary<string, DataObject>()
+            {
+                {
+                    "RelayJoinCode", new DataObject(
+                        visibility: DataObject.VisibilityOptions.Member,
+                        value: _joinCode)
+                }
+            };
+
+            _currentLobby = await LobbyService.Instance.CreateLobbyAsync(
+                "My Game Lobby", 4, options);
+
+            Debug.Log($"Lobby Created: {_currentLobby.Id}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to start Host: {e.Message}");
+        }
+    }
+
+    private async void QuickJoinLobby()
+    {
+        try
+        {
+            Debug.Log("Attempting Quick Join...");
+
+            _currentLobby = await LobbyService.Instance.QuickJoinLobbyAsync();
+
+            string relayCode = _currentLobby.Data["RelayJoinCode"].Value;
+            Debug.Log($"Joined Lobby. Found Relay Code: {relayCode}");
+
+            JoinRelay(relayCode);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Quick Join Failed: {e.Message}");
+        }
     }
 
     private async void JoinRelay(string joinCode)
     {
-        // Get lobby details and set relay server
-        JoinAllocation allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
-        var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
+        try
+        {
+            JoinAllocation allocation =
+                await RelayService.Instance.JoinAllocationAsync(joinCode);
 
-        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+            var relayServerData =
+                AllocationUtils.ToRelayServerData(allocation, "dtls");
 
-        NetworkManager.Singleton.StartClient(); // Join server as client
+            NetworkManager.Singleton.GetComponent<UnityTransport>()
+                .SetRelayServerData(relayServerData);
 
-        _joinCode = joinCode; // Save display code
+            NetworkManager.Singleton.StartClient();
+
+            _joinCode = joinCode;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Join Relay Failed: {e.Message}");
+        }
     }
+
+    private async void HandleLobbyHeartbeat()
+    {
+        if (_currentLobby != null && NetworkManager.Singleton.IsHost)
+        {
+            _heartbeatTimer -= Time.deltaTime;
+            if (_heartbeatTimer <= 0f)
+            {
+                float heartbeatPeriod = 15f;
+                _heartbeatTimer = heartbeatPeriod;
+
+                await LobbyService.Instance.SendHeartbeatPingAsync(
+                    _currentLobby.Id);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Scene & Cleanup
 
     private void QuitLobby()
     {
-        if (NetworkManager.Singleton != null)
+        if (_currentLobby != null && NetworkManager.Singleton.IsHost)
         {
-            NetworkManager.Singleton.Shutdown(); // Disconnectt or Stops Server
-            Destroy(NetworkManager.Singleton.gameObject); // Removes the dependant
+            LobbyService.Instance.DeleteLobbyAsync(_currentLobby.Id);
         }
 
-        SceneManager.LoadScene(0); // Creates a new dependant
-    }
-    #endregion
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.Shutdown();
+            Destroy(NetworkManager.Singleton.gameObject);
+        }
 
-    #region Events
+        SceneManager.LoadScene(0);
+    }
+
+    private void StartGame()
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        NetworkManager.Singleton.SceneManager.LoadScene(
+            gameplaySceneName,
+            LoadSceneMode.Single);
+    }
+
     private void ConnectionEvent(NetworkManager manager, ConnectionEventData data)
     {
-        // Client Connected
         if (data.EventType == Unity.Netcode.ConnectionEvent.ClientConnected)
         {
             if (data.ClientId != manager.LocalClientId) return;
 
-            code.text = _joinCode; // Display join code
-            int plyer = NetStore.Instance.playerData.Count + 1;
-            string sUser = username.text.IsNullOrEmpty() ? $"Player {plyer}" : username.text; // Default username check
-            NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, data.ClientId, !manager.IsHost)); // Add username to the list
+            code.text = _joinCode;
+
+            // Use ClientId for unique identification to avoid race conditions
+            // with list synchronization.
+            ulong playerNum = data.ClientId + 1;
+            string sUser = string.IsNullOrEmpty(username.text)
+                ? $"Player {playerNum}"
+                : username.text;
+
+            // Pass PlayerRole.Survivor. NetStore handles Host logic.
+            NetStore.Instance.AddPlayerDataServerRpc(
+                new NetPlayerData(sUser, data.ClientId, PlayerRole.Survivor));
+
             CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
+
+            if (manager.IsHost && startGameButton != null)
+            {
+                startGameButton.gameObject.SetActive(true);
+            }
         }
-        // Client Disconnected
         else if (data.EventType == Unity.Netcode.ConnectionEvent.ClientDisconnected)
         {
             if (manager.IsClient && !manager.IsHost)
             {
-                Debug.Log("Client detected disconnect - quitting lobby");
                 QuitLobby();
                 return;
             }
@@ -105,5 +248,6 @@ public class RelayManager : MonoBehaviour
                 NetStore.Instance.RemovePlayerDataServerRpc(data.ClientId);
         }
     }
+
     #endregion
 }

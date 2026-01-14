@@ -2,38 +2,51 @@ using System;
 using Unity.Collections;
 using Unity.Netcode;
 
+public enum PlayerRole
+{
+    Survivor,
+    God
+}
+
+/// <summary>
+/// Networked data structure for a player in the lobby.
+/// </summary>
 public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
 {
     public NetString username;
     public ulong clientID;
-    public bool isSurvivor;
+    public PlayerRole role; // The selected role
 
-    public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+    public void NetworkSerialize<T>(BufferSerializer<T> serializer)
+        where T : IReaderWriter
     {
-        if(serializer.IsReader)
+        if (serializer.IsReader)
         {
             var reader = serializer.GetFastBufferReader();
             reader.ReadValueSafe(out username);
             reader.ReadValueSafe(out clientID);
-            reader.ReadValueSafe(out isSurvivor);
-        } else {
+            reader.ReadValueSafe(out role);
+        }
+        else
+        {
             var writer = serializer.GetFastBufferWriter();
             writer.WriteValueSafe(username);
             writer.WriteValueSafe(clientID);
-            writer.WriteValueSafe(isSurvivor);
+            writer.WriteValueSafe(role);
         }
     }
 
     public bool Equals(NetPlayerData other)
     {
-        return other.Equals(this);
+        return other.clientID == clientID &&
+               other.role == role &&
+               other.username.Equals(this.username);
     }
 
-    // Constructor
-    public NetPlayerData(NetString user,  ulong id, bool survivor)
+    public NetPlayerData(NetString user, ulong id, PlayerRole r)
     {
         username = user;
         clientID = id;
-        isSurvivor = survivor;
+        role = r;
     }
 }
