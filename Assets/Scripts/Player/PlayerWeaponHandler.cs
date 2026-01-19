@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Netcode;
 
 /// <summary>
 /// Manages the player's weapon and tracks attack state.
 /// </summary>
-public class PlayerWeaponHandler : MonoBehaviour
+[RequireComponent(typeof(HealthComponent))]
+public class PlayerWeaponHandler : NetworkBehaviour
 {
     [Header("Configuration")]
     [SerializeField] private Transform weaponSocket;
@@ -12,15 +14,33 @@ public class PlayerWeaponHandler : MonoBehaviour
 
     private GameObject _currentWeaponInstance;
     private Animator _animator;
+    private HealthComponent _health;
 
     private HashSet<IDamageable> _hitTargets = new HashSet<IDamageable>();
     private bool _wasAttackingLastFrame = false;
+    private bool _isDead = false;
 
     private static readonly int AttackStateHash = Animator.StringToHash("Attack");
 
     private void Awake()
     {
         _animator = GetComponent<Animator>();
+        _health = GetComponent<HealthComponent>();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        _health.OnDeath += OnDeath;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        _health.OnDeath -= OnDeath;
+    }
+
+    private void OnDeath()
+    {
+        _isDead = true;
     }
 
     private void Start()
@@ -39,6 +59,8 @@ public class PlayerWeaponHandler : MonoBehaviour
 
     private void Update()
     {
+        if (_isDead) return;
+
         bool isAttacking = IsAttacking();
 
         if (isAttacking && !_wasAttackingLastFrame)
@@ -57,7 +79,7 @@ public class PlayerWeaponHandler : MonoBehaviour
 
     public bool CanDamageTarget(IDamageable target)
     {
-        if (!IsAttacking()) return false;
+        if (!IsAttacking() || _isDead) return false;
 
         if (!_hitTargets.Contains(target))
         {

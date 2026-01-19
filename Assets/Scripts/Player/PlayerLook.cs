@@ -5,7 +5,7 @@ using Unity.Netcode;
 /// Manages the player's rotation.
 /// Refactored for Multiplayer: Only rotates if IsOwner is true.
 /// </summary>
-[RequireComponent(typeof(PlayerMovement))]
+[RequireComponent(typeof(PlayerMovement), typeof(HealthComponent))]
 public class PlayerLook : NetworkBehaviour
 {
     [Header("Dependencies")]
@@ -19,12 +19,15 @@ public class PlayerLook : NetworkBehaviour
     [SerializeField][Min(0)] private float rotationSpeed = 15f;
 
     private PlayerMovement _playerMovement;
+    private HealthComponent _health;
     private Vector2 _aimInput;
     private bool _isAiming = false;
+    private bool _isDead = false;
 
     private void Awake()
     {
         _playerMovement = GetComponent<PlayerMovement>();
+        _health = GetComponent<HealthComponent>();
         if (mainCamera == null)
         {
             mainCamera = Camera.main;
@@ -33,10 +36,21 @@ public class PlayerLook : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        _health.OnDeath += OnDeath;
         if (mainCamera == null)
         {
             mainCamera = Camera.main;
         }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        _health.OnDeath -= OnDeath;
+    }
+
+    private void OnDeath()
+    {
+        _isDead = true;
     }
 
     private void OnEnable()
@@ -57,7 +71,7 @@ public class PlayerLook : NetworkBehaviour
     {
         // MULTIPLAYER FIX: Only rotate our own character.
         // NetworkTransform will sync this rotation to others.
-        if (!IsOwner) return;
+        if (!IsOwner || _isDead) return;
 
         if (_isAiming)
         {

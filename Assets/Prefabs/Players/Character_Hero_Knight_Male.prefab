@@ -284,6 +284,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11dce83ce4a5e6f4a86324b0b9ef8317, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponHandler
+  ShowTopMostFoldoutHeaderGroup: 1
   weaponSocket: {fileID: 2717312772539661213}
   defaultWeaponPrefab: {fileID: 2110923032367947516, guid: 94b0f8331a3774144b2e9ab284ef29d8, type: 3}
 --- !u!114 &2133286625999937673
@@ -299,9 +300,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 1500000
+  maxHealth: 50
   CurrentHealth:
-    m_InternalValue: 1500000
+    m_InternalValue: 50
 --- !u!114 &-3956708031069732728
 MonoBehaviour:
   m_ObjectHideFlags: 0

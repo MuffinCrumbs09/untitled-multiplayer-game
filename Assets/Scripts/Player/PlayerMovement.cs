@@ -5,7 +5,7 @@ using Unity.Netcode;
 /// Handles player movement using standard velocity (Code-Driven).
 /// Refactored for Multiplayer: Only runs logic if IsOwner is true.
 /// </summary>
-[RequireComponent(typeof(CharacterController), typeof(Animator))]
+[RequireComponent(typeof(CharacterController), typeof(Animator), typeof(HealthComponent))]
 public class PlayerMovement : NetworkBehaviour
 {
     [Header("Movement Settings")]
@@ -25,15 +25,18 @@ public class PlayerMovement : NetworkBehaviour
 
     private CharacterController _controller;
     private Animator _animator;
+    private HealthComponent _health;
     private Transform _cameraTransform;
     private Vector3 _verticalVelocity;
     private bool _isDodging = false;
     private Vector3 _currentDodgeDirection;
+    private bool _isDead = false;
 
     private void Awake()
     {
         _controller = GetComponent<CharacterController>();
         _animator = GetComponent<Animator>();
+        _health = GetComponent<HealthComponent>();
 
         // Disable Root Motion so our code drives everything.
         _animator.applyRootMotion = false;
@@ -41,9 +44,16 @@ public class PlayerMovement : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        _health.OnDeath += OnDeath;
+
         if (!IsOwner) return;
 
         SetupSurvivorCamera();
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        _health.OnDeath -= OnDeath;
     }
 
     private void SetupSurvivorCamera()
@@ -77,9 +87,16 @@ public class PlayerMovement : NetworkBehaviour
         InputProcessor.onMove -= HandleMove;
     }
 
+    private void OnDeath()
+    {
+        _isDead = true;
+        // Disable the controller so we don't slide or collide while dead
+        if (_controller != null) _controller.enabled = false;
+    }
+
     private void Update()
     {
-        if (!IsOwner) return;
+        if (!IsOwner || _isDead) return;
 
         if (_isDodging)
         {
@@ -95,7 +112,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void HandleMove(Vector2 input)
     {
-        if (!IsOwner || _isDodging) return;
+        if (!IsOwner || _isDodging || _isDead) return;
         MoveInput = input;
     }
 
@@ -104,6 +121,7 @@ public class PlayerMovement : NetworkBehaviour
     /// </summary>
     public void BeginDodge()
     {
+        if (_isDead) return;
         _isDodging = true;
 
         if (MoveDirection.magnitude > 0.1f)
