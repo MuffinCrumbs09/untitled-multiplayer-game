@@ -5,6 +5,9 @@ using UnityEngine;
 using Unity.Netcode;
 using Random = UnityEngine.Random;
 
+/// <summary>
+/// Handles waves of enemy spawns within a defined area.
+/// </summary>
 [RequireComponent(typeof(BoxCollider))]
 public class EnemySpawner : NetworkBehaviour
 {
@@ -21,7 +24,9 @@ public class EnemySpawner : NetworkBehaviour
     public struct Wave
     {
         public List<SpawnEntry> enemies;
-        [Min(0)] public float delayBeforeWave;
+        [Min(0)] float delayBeforeWave;
+
+        public float DelayBeforeWave => delayBeforeWave;
     }
 
     [Header("Configuration")]
@@ -32,7 +37,7 @@ public class EnemySpawner : NetworkBehaviour
     [SerializeField][Min(0)] private float minSpawnDistanceFromPlayer = 5f;
 
     private BoxCollider _spawnArea;
-    private Transform _playerTransform;
+    private Transform _triggeringPlayer;
     private int _enemiesAlive;
     private bool _encounterIsActive = false;
 
@@ -42,13 +47,16 @@ public class EnemySpawner : NetworkBehaviour
         _spawnArea.isTrigger = true;
     }
 
+    /// <summary>
+    /// Starts the spawning routine. 
+    /// </summary>
+    /// <param name="player">The player who triggered the encounter.</param>
     public void BeginEncounter(Transform player)
     {
-        // Only Server runs encounters
         if (!IsServer) return;
         if (_encounterIsActive) return;
 
-        _playerTransform = player;
+        _triggeringPlayer = player;
         _encounterIsActive = true;
         StartCoroutine(SpawnRoutine());
     }
@@ -62,7 +70,7 @@ public class EnemySpawner : NetworkBehaviour
     {
         foreach (var wave in waves)
         {
-            yield return new WaitForSeconds(wave.delayBeforeWave);
+            yield return new WaitForSeconds(wave.DelayBeforeWave);
 
             SpawnWave(wave);
 
@@ -85,16 +93,15 @@ public class EnemySpawner : NetworkBehaviour
             {
                 if (TryGetValidSpawnPoint(out Vector3 spawnPoint))
                 {
-                    // 1. Instantiate on Server
-                    GameObject enemyObj = Instantiate(entry.enemyPrefab, spawnPoint, Quaternion.identity);
+                    GameObject enemyObj = Instantiate(entry.enemyPrefab,
+                        spawnPoint, Quaternion.identity);
 
-                    // 2. Spawn on Network
                     enemyObj.GetComponent<NetworkObject>().Spawn();
 
-                    // 3. Initialize AI
                     if (enemyObj.TryGetComponent<EnemyController>(out var controller))
                     {
-                        controller.Initialize(this, _playerTransform);
+                        // Enemies now find their own targets based on proximity.
+                        controller.Initialize(this);
                     }
                 }
                 else
@@ -114,13 +121,15 @@ public class EnemySpawner : NetworkBehaviour
             float randZ = Random.Range(bounds.min.z, bounds.max.z);
             Vector3 randomPoint = new Vector3(randX, bounds.center.y, randZ);
 
-            // Safety check for player distance (if player exists)
-            if (_playerTransform != null && Vector3.Distance(randomPoint, _playerTransform.position) < minSpawnDistanceFromPlayer)
+            // Use the triggering player to ensure safe spawn distance.
+            if (_triggeringPlayer != null && Vector3.Distance(randomPoint,
+                _triggeringPlayer.position) < minSpawnDistanceFromPlayer)
             {
                 continue;
             }
 
-            if (Physics.Raycast(randomPoint + Vector3.up * 5f, Vector3.down, out RaycastHit hit, 20f, groundMask))
+            if (Physics.Raycast(randomPoint + Vector3.up * 5f, Vector3.down,
+                out RaycastHit hit, 20f, groundMask))
             {
                 point = hit.point;
                 return true;

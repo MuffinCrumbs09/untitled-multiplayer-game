@@ -299,9 +299,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
+  maxHealth: 1500000
   CurrentHealth:
-    m_InternalValue: 100
+    m_InternalValue: 1500000
 --- !u!114 &-3956708031069732728
 MonoBehaviour:
   m_ObjectHideFlags: 0

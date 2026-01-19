@@ -145,7 +145,8 @@ GameObject:
   - component: {fileID: -7621258572108702534}
   - component: {fileID: 4954543427832808780}
   - component: {fileID: 3923421248072174791}
-  - component: {fileID: -4353892243745432789}
+  - component: {fileID: -3826317825604686857}
+  - component: {fileID: 1441618275510652058}
   m_Layer: 7
   m_Name: GoblinEnemy1
   m_TagString: Enemy
@@ -209,9 +210,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 10
+  maxHealth: 20
   CurrentHealth:
-    m_InternalValue: 10
+    m_InternalValue: 20
 --- !u!195 &49721244705841492
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -247,22 +248,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   ShowTopMostFoldoutHeaderGroup: 1
-  attackRange: 2
-  tooCloseRange: 1.2
-  scaleRange: {x: 0.9, y: 1.1}
-  speedRange: {x: 1, y: 1.5}
-  accelerationRange: {x: 4, y: 8}
-  radiusRange: {x: 0.3, y: 0.4}
-  postAttackDelayRange: {x: 0.25, y: 0.45}
   attackAnimationSpeedRange: {x: 0.8, y: 1.2}
-  attackDamage: 10
-  attackPoint: {fileID: 356674044369420827}
-  attackRadius: 0.7
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  retreatSpeed: 0.5
-  attackMoveSpeedMultiplier: 0.7
 --- !u!95 &-4443953108011094505
 Animator:
   serializedVersion: 7
@@ -276,7 +262,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: ffcdee0dfa38f5442ad3aeb7201b1182, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
@@ -297,12 +283,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a560b26510f43fd4ba2c36d38b2e32d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimation
-  ShowTopMostFoldoutHeaderGroup: 1
   baseRunSpeed: 4
-  attackAnimationCount: 2
-  deathAnimationCount: 2
-  hitReactionCount: 2
-  injuryStartThreshold: 0.95
+  smoothingSpeed: 5
+  injuryStartThreshold: 0.6
   injuryMaxThreshold: 0.3
 --- !u!64 &4954543427832808780
 MeshCollider:
@@ -372,7 +355,7 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &-4353892243745432789
+--- !u!114 &-3826317825604686857
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -381,12 +364,39 @@ MonoBehaviour:
   m_GameObject: {fileID: 1302187876061893724}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8d0727d5ae3244e3b569694d3912374, type: 3}
+  m_Script: {fileID: 11500000, guid: c41e360acc55b1942810145e4c411e8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  TransitionStateInfoList: []
-  m_Animator: {fileID: -4443953108011094505}
+  attackRange: 2
+  tooCloseRange: 1
+  targetSearchInterval: 0.5
+  attackDamage: 10
+  attackPoint: {fileID: 356674044369420827}
+  attackRadius: 0.7
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  postAttackDelayRange: {x: 0.5, y: 1.5}
+  attackMoveSpeedMultiplier: 0.5
+--- !u!114 &1441618275510652058
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1302187876061893724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07c7fdc5fc9a0c34fabb90c3a4b02575, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  scaleRange: {x: 0.9, y: 1.1}
+  speedRange: {x: 1.5, y: 1.5}
+  accelerationRange: {x: 4, y: 8}
+  radiusRange: {x: 0.3, y: 0.4}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!1 &1363777842721624011
 GameObject:
   m_ObjectHideFlags: 0

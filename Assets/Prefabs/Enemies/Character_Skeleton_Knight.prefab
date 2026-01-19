@@ -502,8 +502,9 @@ GameObject:
   - component: {fileID: 8758732891274441935}
   - component: {fileID: 2784094035189086078}
   - component: {fileID: 2813923776284807142}
-  - component: {fileID: -1966145038145779958}
   - component: {fileID: -3292619014356850926}
+  - component: {fileID: -5589647468677412128}
+  - component: {fileID: 7743689792867985224}
   m_Layer: 7
   m_Name: Character_Skeleton_Knight
   m_TagString: Enemy
@@ -589,7 +590,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 10
+  maxHealth: 20
   CurrentHealth:
     m_InternalValue: 100
 --- !u!95 &2492137105618742866
@@ -605,7 +606,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: ffcdee0dfa38f5442ad3aeb7201b1182, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
@@ -626,12 +627,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a560b26510f43fd4ba2c36d38b2e32d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimation
-  ShowTopMostFoldoutHeaderGroup: 1
   baseRunSpeed: 4
-  attackAnimationCount: 2
-  deathAnimationCount: 2
-  hitReactionCount: 2
-  injuryStartThreshold: 0.95
+  smoothingSpeed: 5
+  injuryStartThreshold: 0.6
   injuryMaxThreshold: 0.3
 --- !u!114 &2784094035189086078
 MonoBehaviour:
@@ -646,22 +644,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   ShowTopMostFoldoutHeaderGroup: 1
-  attackRange: 2
-  tooCloseRange: 1.2
-  scaleRange: {x: 0.9, y: 1.1}
-  speedRange: {x: 3, y: 4.5}
-  accelerationRange: {x: 6, y: 10}
-  radiusRange: {x: 0.3, y: 0.4}
-  postAttackDelayRange: {x: 0.5, y: 1.5}
   attackAnimationSpeedRange: {x: 0.8, y: 1.2}
-  attackDamage: 10
-  attackPoint: {fileID: 4947915165181191932}
-  attackRadius: 1
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  retreatSpeed: 1.5
-  attackMoveSpeedMultiplier: 0.5
 --- !u!64 &2813923776284807142
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -684,21 +667,6 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -6916952600793823775, guid: d9902228cd84cd24491e76bc219feb54, type: 3}
---- !u!114 &-1966145038145779958
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3518418817594089877}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8d0727d5ae3244e3b569694d3912374, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  TransitionStateInfoList: []
-  m_Animator: {fileID: 2492137105618742866}
 --- !u!114 &-3292619014356850926
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -745,6 +713,48 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &-5589647468677412128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3518418817594089877}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c41e360acc55b1942810145e4c411e8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attackRange: 2
+  tooCloseRange: 1
+  targetSearchInterval: 0.5
+  attackDamage: 10
+  attackPoint: {fileID: 4947915165181191932}
+  attackRadius: 0.7
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  postAttackDelayRange: {x: 0.5, y: 1.5}
+  attackMoveSpeedMultiplier: 0.5
+--- !u!114 &7743689792867985224
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3518418817594089877}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07c7fdc5fc9a0c34fabb90c3a4b02575, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  scaleRange: {x: 0.9, y: 1.1}
+  speedRange: {x: 1.5, y: 1.5}
+  accelerationRange: {x: 4, y: 8}
+  radiusRange: {x: 0.3, y: 0.4}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!1 &3714635745875917816
 GameObject:
   m_ObjectHideFlags: 0

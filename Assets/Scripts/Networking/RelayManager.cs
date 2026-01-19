@@ -14,7 +14,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// Manages Relay and Lobby services to facilitate multiplayer connections.
+/// Manages Relay and Lobby services, including real-time privacy settings.
 /// </summary>
 public class RelayManager : MonoBehaviour
 {
@@ -24,6 +24,10 @@ public class RelayManager : MonoBehaviour
     [SerializeField] private Button quickJoinButton;
     [SerializeField] private Button quitLobbyButton;
     [SerializeField] private Button startGameButton;
+
+    [Space]
+    [Tooltip("Toggle to determine if the lobby is searchable via Quick Join.")]
+    [SerializeField] private Toggle lobbyPublicToggle;
 
     [Space]
     [SerializeField] private TMP_InputField input;
@@ -60,6 +64,9 @@ public class RelayManager : MonoBehaviour
 
         if (quitLobbyButton)
             quitLobbyButton.onClick.AddListener(QuitLobby);
+
+        if (lobbyPublicToggle)
+            lobbyPublicToggle.onValueChanged.AddListener(OnPublicToggleChanged);
 
         if (startGameButton)
         {
@@ -103,6 +110,8 @@ public class RelayManager : MonoBehaviour
             Debug.Log($"Host Started. Relay Code: {_joinCode}");
 
             CreateLobbyOptions options = new CreateLobbyOptions();
+            options.IsPrivate = !lobbyPublicToggle.isOn;
+
             options.Data = new Dictionary<string, DataObject>()
             {
                 {
@@ -181,6 +190,26 @@ public class RelayManager : MonoBehaviour
         }
     }
 
+    private async void OnPublicToggleChanged(bool isPublic)
+    {
+        if (_currentLobby == null || !NetworkManager.Singleton.IsHost) return;
+
+        try
+        {
+            UpdateLobbyOptions options = new UpdateLobbyOptions
+            {
+                IsPrivate = !isPublic
+            };
+
+            _currentLobby = await LobbyService.Instance.UpdateLobbyAsync(
+                _currentLobby.Id, options);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to update lobby privacy: {e.Message}");
+        }
+    }
+
     #endregion
 
     #region Scene & Cleanup
@@ -190,6 +219,12 @@ public class RelayManager : MonoBehaviour
         if (_currentLobby != null && NetworkManager.Singleton.IsHost)
         {
             LobbyService.Instance.DeleteLobbyAsync(_currentLobby.Id);
+        }
+
+        // Fix: Explicitly destroy NetStore to clear old session data.
+        if (NetStore.Instance != null)
+        {
+            Destroy(NetStore.Instance.gameObject);
         }
 
         if (NetworkManager.Singleton != null)
@@ -218,14 +253,11 @@ public class RelayManager : MonoBehaviour
 
             code.text = _joinCode;
 
-            // Use ClientId for unique identification to avoid race conditions
-            // with list synchronization.
             ulong playerNum = data.ClientId + 1;
             string sUser = string.IsNullOrEmpty(username.text)
                 ? $"Player {playerNum}"
                 : username.text;
 
-            // Pass PlayerRole.Survivor. NetStore handles Host logic.
             NetStore.Instance.AddPlayerDataServerRpc(
                 new NetPlayerData(sUser, data.ClientId, PlayerRole.Survivor));
 

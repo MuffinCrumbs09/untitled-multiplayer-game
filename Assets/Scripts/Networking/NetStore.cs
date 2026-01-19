@@ -19,7 +19,8 @@ public class NetStore : NetworkBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Destroy(this);
+            // Fix: Destroy the entire GameObject to prevent duplicates.
+            Destroy(gameObject);
             return;
         }
 
@@ -28,12 +29,19 @@ public class NetStore : NetworkBehaviour
         playerData = new();
     }
 
+    public override void OnNetworkSpawn()
+    {
+        // Safety: Ensure the list is empty when a new session starts.
+        if (IsServer)
+        {
+            playerData.Clear();
+        }
+    }
+
     /// <summary>
     /// Adds a new player to the shared list. Assigns the God role 
     /// to the host if the slot is available.
     /// </summary>
-    /// <param name="data">The initial player data package.</param>
-    /// <param name="rpc">The RPC parameters for sender identification.</param>
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void AddPlayerDataServerRpc(NetPlayerData data,
                                        RpcParams rpc = default)
@@ -41,7 +49,6 @@ public class NetStore : NetworkBehaviour
         ulong senderId = rpc.Receive.SenderClientId;
         data.clientID = senderId;
 
-        // Assign God to host (ID 0) only if no God exists.
         if (senderId == 0 && !IsGodSlotOccupied())
         {
             data.role = PlayerRole.God;
@@ -58,7 +65,6 @@ public class NetStore : NetworkBehaviour
     /// <summary>
     /// Removes a player from the shared list based on Client ID.
     /// </summary>
-    /// <param name="clientId">The unique ID of the client to remove.</param>
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void RemovePlayerDataServerRpc(ulong clientId)
     {
@@ -75,20 +81,16 @@ public class NetStore : NetworkBehaviour
     /// <summary>
     /// Updates a player's role. Enforces the single-God constraint.
     /// </summary>
-    /// <param name="clientId">The ID of the requesting client.</param>
-    /// <param name="newRole">The desired role to switch to.</param>
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void UpdatePlayerRoleServerRpc(ulong clientId,
                                           PlayerRole newRole)
     {
-        // Switching to Survivor is always allowed.
         if (newRole == PlayerRole.Survivor)
         {
             ApplyRoleChange(clientId, newRole);
             return;
         }
 
-        // Switching to God is only allowed if the slot is empty.
         if (newRole == PlayerRole.God)
         {
             if (!IsGodSlotOccupied())

@@ -4,16 +4,19 @@ using Unity.Netcode;
 
 /// <summary>
 /// Manages networked health state, damage processing, and death events.
+/// Refactored to be reactive: Events fire on all clients based on NetworkVariable changes.
 /// </summary>
 public class HealthComponent : NetworkBehaviour, IDamageable
 {
     /// <summary>
     /// Fired when the health value reaches zero.
+    /// Runs on Server and Clients.
     /// </summary>
     public event Action OnDeath;
 
     /// <summary>
     /// Fired when damage is applied, providing the amount taken.
+    /// Runs on Server and Clients.
     /// </summary>
     public event Action<float> OnDamaged;
 
@@ -42,6 +45,34 @@ public class HealthComponent : NetworkBehaviour, IDamageable
         {
             CurrentHealth.Value = maxHealth;
         }
+
+        // Subscribe to changes on both Server and Client to drive visuals/events
+        CurrentHealth.OnValueChanged += HandleHealthChanged;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        CurrentHealth.OnValueChanged -= HandleHealthChanged;
+    }
+
+    /// <summary>
+    /// Reacts to changes in the NetworkVariable.
+    /// This runs on all clients when the Server modifies CurrentHealth.
+    /// </summary>
+    private void HandleHealthChanged(float previousValue, float newValue)
+    {
+        // 1. Check for Damage
+        if (newValue < previousValue)
+        {
+            float damageTaken = previousValue - newValue;
+            OnDamaged?.Invoke(damageTaken);
+        }
+
+        // 2. Check for Death (Edge trigger)
+        if (newValue <= 0 && previousValue > 0)
+        {
+            OnDeath?.Invoke();
+        }
     }
 
     /// <summary>
@@ -60,8 +91,7 @@ public class HealthComponent : NetworkBehaviour, IDamageable
         }
     }
 
-    [Rpc(SendTo.Server,
-         InvokePermission = RpcInvokePermission.Everyone)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void SubmitDamageRequestServerRpc(float amount)
     {
         ApplyDamage(amount);
@@ -71,20 +101,8 @@ public class HealthComponent : NetworkBehaviour, IDamageable
     {
         if (IsDead) return;
 
-        CurrentHealth.Value -= amount;
-
-        // Notify local listeners for UI or VFX feedback.
-        OnDamaged?.Invoke(amount);
-
-        if (CurrentHealth.Value <= 0)
-        {
-            CurrentHealth.Value = 0;
-            Die();
-        }
-    }
-
-    private void Die()
-    {
-        OnDeath?.Invoke();
+        // Modifying this value will trigger HandleHealthChanged on all clients automatically.
+        // We do not need to manually invoke events here anymore.
+        CurrentHealth.Value = Mathf.Max(CurrentHealth.Value - amount, 0);
     }
 }
