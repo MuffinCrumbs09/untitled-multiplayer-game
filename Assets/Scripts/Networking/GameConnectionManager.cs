@@ -2,26 +2,28 @@ using UnityEngine;
 using Unity.Netcode;
 
 /// <summary>
-/// Handles spawning Player objects (God vs Survivor) based on Lobby roles.
+/// Handles spawning the correct Player Object (God vs Survivor) based on 
+/// the role selected in the lobby.
 /// </summary>
 public class GameConnectionManager : MonoBehaviour
 {
     [Header("Player Prefabs")]
-    [Tooltip("Prefab for the God role.")]
-    [SerializeField] private GameObject godPrefab;
-    [Tooltip("Prefab for the Survivor role.")]
-    [SerializeField] private GameObject survivorPrefab;
+    [SerializeField]
+    [Tooltip("Prefab instantiated for players with the God role.")]
+    private GameObject godPrefab;
+
+    [SerializeField]
+    [Tooltip("Prefab instantiated for players with the Survivor role.")]
+    private GameObject survivorPrefab;
 
     private void Start()
     {
         if (NetworkManager.Singleton != null &&
             NetworkManager.Singleton.IsServer)
         {
-            // Handle late joiners
             NetworkManager.Singleton.OnClientConnectedCallback +=
                 HandleClientConnect;
 
-            // Spawn for existing players
             foreach (ulong id in NetworkManager.Singleton.ConnectedClientsIds)
             {
                 SpawnCorrectPlayer(id);
@@ -46,9 +48,8 @@ public class GameConnectionManager : MonoBehaviour
 
     private void SpawnCorrectPlayer(ulong clientId)
     {
-        GameObject prefabToSpawn = survivorPrefab; // Default
+        GameObject prefabToSpawn = survivorPrefab;
 
-        // 1. Check NetStore for the chosen role
         if (NetStore.Instance != null)
         {
             foreach (var data in NetStore.Instance.playerData)
@@ -65,14 +66,23 @@ public class GameConnectionManager : MonoBehaviour
         }
         else
         {
-            // Fallback for testing without Lobby: Host is always God
+            // Fallback for testing without Lobby
             if (clientId == 0) prefabToSpawn = godPrefab;
         }
 
-        Debug.Log($"[ConnectionManager] Spawning {prefabToSpawn.name} " +
-                  $"for Client {clientId}");
-
         GameObject instance = Instantiate(prefabToSpawn);
         instance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+
+        if (prefabToSpawn == survivorPrefab)
+        {
+            if (GameLoopManager.Instance != null)
+            {
+                var health = instance.GetComponent<HealthComponent>();
+                if (health != null)
+                {
+                    GameLoopManager.Instance.RegisterSurvivor(health);
+                }
+            }
+        }
     }
 }

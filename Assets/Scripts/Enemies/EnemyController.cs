@@ -135,7 +135,6 @@ public class EnemyController : NetworkBehaviour
 
     private void HandleAttackingState()
     {
-        // Optional: slight movement during attack
         float distance = Vector3.Distance(transform.position, _combat.CurrentTarget.position);
         if (distance > _combat.AttackRange)
         {

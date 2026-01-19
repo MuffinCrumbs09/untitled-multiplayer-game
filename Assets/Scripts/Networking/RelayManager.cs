@@ -14,64 +14,101 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// Manages Relay and Lobby services, including real-time privacy settings.
+/// Manages connection to Unity Relay and Lobby services, handles UI for 
+/// session creation/joining, and manages scene transitions.
 /// </summary>
 public class RelayManager : MonoBehaviour
 {
     [Header("UI Components")]
-    [SerializeField] private Button startHostButton;
-    [SerializeField] private Button joinClientButton;
-    [SerializeField] private Button quickJoinButton;
-    [SerializeField] private Button quitLobbyButton;
-    [SerializeField] private Button startGameButton;
+    [SerializeField]
+    [Tooltip("Button to start a host session.")]
+    private Button startHostButton;
 
-    [Space]
-    [Tooltip("Toggle to determine if the lobby is searchable via Quick Join.")]
-    [SerializeField] private Toggle lobbyPublicToggle;
+    [SerializeField]
+    [Tooltip("Button to join a session via code.")]
+    private Button joinClientButton;
 
-    [Space]
-    [SerializeField] private TMP_InputField input;
-    [SerializeField] private TMP_InputField username;
-    [SerializeField] private TMP_Text code;
+    [SerializeField]
+    [Tooltip("Button to quick join a public lobby.")]
+    private Button quickJoinButton;
+
+    [SerializeField]
+    [Tooltip("Button to leave the current lobby.")]
+    private Button quitLobbyButton;
+
+    [SerializeField]
+    [Tooltip("Button to start the gameplay scene (Host only).")]
+    private Button startGameButton;
+
+    [Header("Lobby Settings")]
+    [SerializeField]
+    [Tooltip("Toggle to determine if the lobby is publicly searchable.")]
+    private Toggle lobbyPublicToggle;
+
+    [SerializeField]
+    [Tooltip("Input field for entering a join code.")]
+    private TMP_InputField input;
+
+    [SerializeField]
+    [Tooltip("Input field for the player's username.")]
+    private TMP_InputField username;
+
+    [SerializeField]
+    [Tooltip("Text display for the generated join code.")]
+    private TMP_Text code;
 
     [Header("Scene Management")]
-    [SerializeField] private string gameplaySceneName = "GameplayScene";
+    [SerializeField]
+    [Tooltip("Name of the scene to load when the game starts.")]
+    private string gameplaySceneName = "GameplayScene";
 
-    private string _joinCode;
-    private Lobby _currentLobby;
+    private static string _joinCode;
+    private static Lobby _currentLobby;
     private float _heartbeatTimer;
 
     private async void Start()
     {
+        // Force cursor unlock to ensure menu usability after returning from game
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
         await UnityServices.InitializeAsync();
 
         if (!AuthenticationService.Instance.IsSignedIn)
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
-        if (NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton.OnConnectionEvent += ConnectionEvent;
-        }
-
-        if (startHostButton)
-            startHostButton.onClick.AddListener(StartRelayAndLobby);
-
-        if (joinClientButton)
-            joinClientButton.onClick.AddListener(() => JoinRelay(input.text));
-
-        if (quickJoinButton)
-            quickJoinButton.onClick.AddListener(QuickJoinLobby);
-
-        if (quitLobbyButton)
-            quitLobbyButton.onClick.AddListener(QuitLobby);
-
-        if (lobbyPublicToggle)
-            lobbyPublicToggle.onValueChanged.AddListener(OnPublicToggleChanged);
+        if (startHostButton) startHostButton.onClick.AddListener(StartRelayAndLobby);
+        if (joinClientButton) joinClientButton.onClick.AddListener(() => JoinRelay(input.text));
+        if (quickJoinButton) quickJoinButton.onClick.AddListener(QuickJoinLobby);
+        if (quitLobbyButton) quitLobbyButton.onClick.AddListener(QuitLobby);
+        if (lobbyPublicToggle) lobbyPublicToggle.onValueChanged.AddListener(OnPublicToggleChanged);
 
         if (startGameButton)
         {
             startGameButton.onClick.AddListener(StartGame);
             startGameButton.gameObject.SetActive(false);
+        }
+
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnConnectionEvent += ConnectionEvent;
+
+            // Restore UI state if returning to menu while still connected
+            if (NetworkManager.Singleton.IsListening)
+            {
+                RestoreLobbyState();
+            }
+        }
+    }
+
+    private void RestoreLobbyState()
+    {
+        CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
+        code.text = _joinCode;
+
+        if (NetworkManager.Singleton.IsHost && startGameButton != null)
+        {
+            startGameButton.gameObject.SetActive(true);
         }
     }
 
@@ -94,37 +131,31 @@ public class RelayManager : MonoBehaviour
     {
         try
         {
-            Allocation allocation =
-                await RelayService.Instance.CreateAllocationAsync(3);
+            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(3);
+            _joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
-            _joinCode =
-                await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-
-            var relayServerData =
-                AllocationUtils.ToRelayServerData(allocation, "dtls");
-
-            NetworkManager.Singleton.GetComponent<UnityTransport>()
-                .SetRelayServerData(relayServerData);
+            var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
 
             NetworkManager.Singleton.StartHost();
-            Debug.Log($"Host Started. Relay Code: {_joinCode}");
 
             CreateLobbyOptions options = new CreateLobbyOptions();
             options.IsPrivate = !lobbyPublicToggle.isOn;
-
             options.Data = new Dictionary<string, DataObject>()
             {
-                {
-                    "RelayJoinCode", new DataObject(
-                        visibility: DataObject.VisibilityOptions.Member,
-                        value: _joinCode)
-                }
+                { "RelayJoinCode", new DataObject(visibility: DataObject.VisibilityOptions.Member, value: _joinCode) }
             };
 
-            _currentLobby = await LobbyService.Instance.CreateLobbyAsync(
-                "My Game Lobby", 4, options);
+            _currentLobby = await LobbyService.Instance.CreateLobbyAsync("My Game Lobby", 4, options);
 
-            Debug.Log($"Lobby Created: {_currentLobby.Id}");
+            code.text = _joinCode;
+            CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
+
+            if (startGameButton != null)
+                startGameButton.gameObject.SetActive(true);
+
+            string sUser = string.IsNullOrEmpty(username.text) ? "Host" : username.text;
+            NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, 0, PlayerRole.God));
         }
         catch (Exception e)
         {
@@ -136,13 +167,8 @@ public class RelayManager : MonoBehaviour
     {
         try
         {
-            Debug.Log("Attempting Quick Join...");
-
             _currentLobby = await LobbyService.Instance.QuickJoinLobbyAsync();
-
             string relayCode = _currentLobby.Data["RelayJoinCode"].Value;
-            Debug.Log($"Joined Lobby. Found Relay Code: {relayCode}");
-
             JoinRelay(relayCode);
         }
         catch (Exception e)
@@ -155,17 +181,10 @@ public class RelayManager : MonoBehaviour
     {
         try
         {
-            JoinAllocation allocation =
-                await RelayService.Instance.JoinAllocationAsync(joinCode);
-
-            var relayServerData =
-                AllocationUtils.ToRelayServerData(allocation, "dtls");
-
-            NetworkManager.Singleton.GetComponent<UnityTransport>()
-                .SetRelayServerData(relayServerData);
-
+            JoinAllocation allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+            var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
             NetworkManager.Singleton.StartClient();
-
             _joinCode = joinCode;
         }
         catch (Exception e)
@@ -181,11 +200,8 @@ public class RelayManager : MonoBehaviour
             _heartbeatTimer -= Time.deltaTime;
             if (_heartbeatTimer <= 0f)
             {
-                float heartbeatPeriod = 15f;
-                _heartbeatTimer = heartbeatPeriod;
-
-                await LobbyService.Instance.SendHeartbeatPingAsync(
-                    _currentLobby.Id);
+                _heartbeatTimer = 15f;
+                await LobbyService.Instance.SendHeartbeatPingAsync(_currentLobby.Id);
             }
         }
     }
@@ -193,21 +209,12 @@ public class RelayManager : MonoBehaviour
     private async void OnPublicToggleChanged(bool isPublic)
     {
         if (_currentLobby == null || !NetworkManager.Singleton.IsHost) return;
-
         try
         {
-            UpdateLobbyOptions options = new UpdateLobbyOptions
-            {
-                IsPrivate = !isPublic
-            };
-
-            _currentLobby = await LobbyService.Instance.UpdateLobbyAsync(
-                _currentLobby.Id, options);
+            UpdateLobbyOptions options = new UpdateLobbyOptions { IsPrivate = !isPublic };
+            _currentLobby = await LobbyService.Instance.UpdateLobbyAsync(_currentLobby.Id, options);
         }
-        catch (Exception e)
-        {
-            Debug.LogError($"Failed to update lobby privacy: {e.Message}");
-        }
+        catch (Exception e) { Debug.LogError($"Failed to update lobby: {e.Message}"); }
     }
 
     #endregion
@@ -221,17 +228,11 @@ public class RelayManager : MonoBehaviour
             LobbyService.Instance.DeleteLobbyAsync(_currentLobby.Id);
         }
 
-        // Fix: Explicitly destroy NetStore to clear old session data.
-        if (NetStore.Instance != null)
-        {
-            Destroy(NetStore.Instance.gameObject);
-        }
+        if (NetStore.Instance != null) Destroy(NetStore.Instance.gameObject);
+        if (NetworkManager.Singleton != null) NetworkManager.Singleton.Shutdown();
 
-        if (NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton.Shutdown();
-            Destroy(NetworkManager.Singleton.gameObject);
-        }
+        _currentLobby = null;
+        _joinCode = null;
 
         SceneManager.LoadScene(0);
     }
@@ -239,10 +240,7 @@ public class RelayManager : MonoBehaviour
     private void StartGame()
     {
         if (!NetworkManager.Singleton.IsServer) return;
-
-        NetworkManager.Singleton.SceneManager.LoadScene(
-            gameplaySceneName,
-            LoadSceneMode.Single);
+        NetworkManager.Singleton.SceneManager.LoadScene(gameplaySceneName, LoadSceneMode.Single);
     }
 
     private void ConnectionEvent(NetworkManager manager, ConnectionEventData data)
@@ -253,13 +251,12 @@ public class RelayManager : MonoBehaviour
 
             code.text = _joinCode;
 
-            ulong playerNum = data.ClientId + 1;
-            string sUser = string.IsNullOrEmpty(username.text)
-                ? $"Player {playerNum}"
-                : username.text;
-
-            NetStore.Instance.AddPlayerDataServerRpc(
-                new NetPlayerData(sUser, data.ClientId, PlayerRole.Survivor));
+            if (!manager.IsHost)
+            {
+                ulong playerNum = data.ClientId + 1;
+                string sUser = string.IsNullOrEmpty(username.text) ? $"Player {playerNum}" : username.text;
+                NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, data.ClientId, PlayerRole.Survivor));
+            }
 
             CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
 
@@ -275,9 +272,10 @@ public class RelayManager : MonoBehaviour
                 QuitLobby();
                 return;
             }
-
             if (manager.IsServer && manager.IsListening)
+            {
                 NetStore.Instance.RemovePlayerDataServerRpc(data.ClientId);
+            }
         }
     }
 

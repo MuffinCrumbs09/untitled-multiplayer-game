@@ -3,7 +3,6 @@ using UnityEngine.AI;
 
 /// <summary>
 /// Handles physical movement, pathfinding, and rotation for the enemy.
-/// Server-side logic mostly, but components exist on clients.
 /// </summary>
 [RequireComponent(typeof(NavMeshAgent))]
 public class EnemyMovement : MonoBehaviour
@@ -63,7 +62,6 @@ public class EnemyMovement : MonoBehaviour
     {
         Vector3 lookDirection;
 
-        // If moving significantly, look where we are going. Otherwise look at target.
         if (IsMoving)
         {
             lookDirection = _agent.desiredVelocity;
@@ -86,8 +84,8 @@ public class EnemyMovement : MonoBehaviour
 
     public void SnapToGround()
     {
-        // Cast a ray from slightly above downwards to find the floor
-        if (Physics.Raycast(transform.position + Vector3.up, Vector3.down, out RaycastHit hit, 5f, groundLayer))
+        if (Physics.Raycast(transform.position + Vector3.up, Vector3.down,
+            out RaycastHit hit, 5f, groundLayer))
         {
             transform.position = hit.point;
         }
@@ -95,7 +93,8 @@ public class EnemyMovement : MonoBehaviour
 
     private void ValidateNavMeshPosition()
     {
-        if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
+        if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit,
+            2.0f, NavMesh.AllAreas))
         {
             _agent.Warp(hit.position);
             _agent.enabled = true;
@@ -113,7 +112,8 @@ public class EnemyMovement : MonoBehaviour
         transform.localScale = Vector3.one * randomScale;
 
         _agent.speed = Random.Range(speedRange.x, speedRange.y);
-        _agent.acceleration = Random.Range(accelerationRange.x, accelerationRange.y);
+        _agent.acceleration = Random.Range(accelerationRange.x,
+            accelerationRange.y);
         _agent.radius = Random.Range(radiusRange.x, radiusRange.y);
         _agent.avoidancePriority = Random.Range(0, 100);
     }

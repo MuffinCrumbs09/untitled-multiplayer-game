@@ -10,18 +10,21 @@ using UnityEngine.UI;
 public class UIDisplay : MonoBehaviour
 {
     [Header("Visuals")]
+    [SerializeField]
     [Tooltip("The text component displaying the list of players.")]
-    [SerializeField] private TMP_Text usernameText;
+    private TMP_Text usernameText;
 
     [Header("Interaction")]
+    [SerializeField]
     [Tooltip("The button used to swap between God and Survivor roles.")]
-    [SerializeField] private Button toggleRoleButton;
+    private Button toggleRoleButton;
 
     private void Start()
     {
         if (NetStore.Instance != null)
         {
             NetStore.Instance.playerData.OnListChanged += UpdateNames;
+            RefreshList();
         }
 
         if (toggleRoleButton != null)
@@ -40,10 +43,11 @@ public class UIDisplay : MonoBehaviour
 
     private void ToggleMyRole()
     {
+        if (NetworkManager.Singleton == null) return;
+
         ulong myId = NetworkManager.Singleton.LocalClientId;
         PlayerRole currentRole = PlayerRole.Survivor;
 
-        // Find current role
         foreach (var data in NetStore.Instance.playerData)
         {
             if (data.clientID == myId)
@@ -53,7 +57,6 @@ public class UIDisplay : MonoBehaviour
             }
         }
 
-        // Swap Logic
         PlayerRole newRole = (currentRole == PlayerRole.God)
             ? PlayerRole.Survivor
             : PlayerRole.God;
@@ -63,11 +66,17 @@ public class UIDisplay : MonoBehaviour
 
     public void UpdateNames(NetworkListEvent<NetPlayerData> changeEvent)
     {
+        RefreshList();
+    }
+
+    private void RefreshList()
+    {
+        if (NetStore.Instance == null) return;
+
         List<string> lines = new();
 
         foreach (NetPlayerData data in NetStore.Instance.playerData)
         {
-            // Simple color coding for roles
             string color = data.role == PlayerRole.God ? "red" : "green";
             string label = data.role == PlayerRole.God
                 ? "(GOD)"

@@ -12,30 +12,21 @@ public class NetStore : NetworkBehaviour
 
     /// <summary>
     /// Synchronized list of all players currently in the lobby.
+    /// Initialized immediately to prevent null errors during scene transitions.
     /// </summary>
-    public NetworkList<NetPlayerData> playerData;
+    public NetworkList<NetPlayerData> playerData =
+        new NetworkList<NetPlayerData>();
 
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            // Fix: Destroy the entire GameObject to prevent duplicates.
             Destroy(gameObject);
             return;
         }
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
-        playerData = new();
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        // Safety: Ensure the list is empty when a new session starts.
-        if (IsServer)
-        {
-            playerData.Clear();
-        }
     }
 
     /// <summary>
@@ -58,8 +49,16 @@ public class NetStore : NetworkBehaviour
             data.role = PlayerRole.Survivor;
         }
 
-        playerData.Add(data);
-        Debug.Log($"[NetStore] Added {data.username} as {data.role}");
+        bool exists = false;
+        foreach (var p in playerData)
+        {
+            if (p.clientID == senderId) { exists = true; break; }
+        }
+
+        if (!exists)
+        {
+            playerData.Add(data);
+        }
     }
 
     /// <summary>
@@ -82,8 +81,7 @@ public class NetStore : NetworkBehaviour
     /// Updates a player's role. Enforces the single-God constraint.
     /// </summary>
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void UpdatePlayerRoleServerRpc(ulong clientId,
-                                          PlayerRole newRole)
+    public void UpdatePlayerRoleServerRpc(ulong clientId, PlayerRole newRole)
     {
         if (newRole == PlayerRole.Survivor)
         {
@@ -96,11 +94,6 @@ public class NetStore : NetworkBehaviour
             if (!IsGodSlotOccupied())
             {
                 ApplyRoleChange(clientId, newRole);
-            }
-            else
-            {
-                Debug.LogWarning("[NetStore] Role change denied. " +
-                                 "God slot is already occupied.");
             }
         }
     }

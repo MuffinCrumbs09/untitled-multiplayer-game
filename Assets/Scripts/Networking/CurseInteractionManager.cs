@@ -30,6 +30,10 @@ public class CurseInteractionManager : NetworkBehaviour
     {
         if (!IsOwner) return;
 
+        // Refresh camera reference if lost (e.g. scene load)
+        if (_mainCamera == null) _mainCamera = Camera.main;
+        if (_mainCamera == null) return;
+
         // Prevent clicking through UI
         if (EventSystem.current != null &&
             EventSystem.current.IsPointerOverGameObject()) return;
@@ -63,6 +67,8 @@ public class CurseInteractionManager : NetworkBehaviour
 
     private void TrySpawnEnemy()
     {
+        if (_mainCamera == null) return;
+
         // 1. Client-Side Prediction Check
         if (_energySystem != null)
         {

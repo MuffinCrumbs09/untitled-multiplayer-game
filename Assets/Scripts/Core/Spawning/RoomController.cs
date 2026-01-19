@@ -55,10 +55,10 @@ public class RoomController : NetworkBehaviour
     {
         _trigger.enabled = false;
 
-        // Lock doors (We need to sync this to clients ideally, but for now Server-side physics works)
+        // Lock doors
         SetDoorsActive(true);
 
-        // Tell Clients to lock doors (Optional Polish: You'd use a ClientRpc here later)
+        // Tell Clients to lock doors
         LockDoorsClientRpc(true);
 
         enemySpawner.BeginEncounter(player);

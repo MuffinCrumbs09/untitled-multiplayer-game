@@ -102,7 +102,6 @@ public class HealthComponent : NetworkBehaviour, IDamageable
         if (IsDead) return;
 
         // Modifying this value will trigger HandleHealthChanged on all clients automatically.
-        // We do not need to manually invoke events here anymore.
         CurrentHealth.Value = Mathf.Max(CurrentHealth.Value - amount, 0);
     }
 }

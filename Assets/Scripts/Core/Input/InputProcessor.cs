@@ -2,18 +2,13 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// A singleton that processes raw input events from the InputManager into
-/// game-ready actions. Gameplay systems should listen to events from this
-/// class, not the raw InputManager.
+/// Singleton that processes raw input events from InputManager into game-ready actions.
+/// Designed to be destroyed on scene unload to ensure a clean state reset.
 /// </summary>
 public class InputProcessor : MonoBehaviour
 {
-    /// <summary>
-    /// Gets the singleton instance of the InputProcessor.
-    /// </summary>
     public static InputProcessor Instance { get; private set; }
 
-    // Processed Events for Gameplay Systems
     public static event Action<Vector2> onMove;
     public static event Action<Vector2> onAim;
     public static event Action onAttackStarted;
@@ -34,7 +29,6 @@ public class InputProcessor : MonoBehaviour
             return;
         }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
     }
 
     private void OnEnable()
