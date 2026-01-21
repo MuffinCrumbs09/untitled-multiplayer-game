@@ -1,7 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 
-public class Grave : NetworkBehaviour, IInteractable
+public class Grave : NetworkBehaviour, IInteractable, IPopUp
 {
     [SerializeField] private GameObject enemyPrefab;
     [SerializeField][Range(0f, 1f)] private float enemySpawnChance = 0.3f;
@@ -16,7 +16,7 @@ public class Grave : NetworkBehaviour, IInteractable
 
     public void Interact()
     {
-        Searched.Value = true;
+        InteractServerRpc();
         StartCoroutine(SearchGrave());
     }
 
@@ -56,6 +56,12 @@ public class Grave : NetworkBehaviour, IInteractable
                 SpawnEnemyServerRpc();
             }
         }
+    }
+
+    [Rpc(SendTo.Server)]
+    private void InteractServerRpc()
+    {
+        Searched.Value = true;
     }
 
     [Rpc(SendTo.Server)]

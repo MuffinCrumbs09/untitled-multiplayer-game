@@ -7,9 +7,15 @@ public class PuzzleManager : NetworkBehaviour
     // Instance
     public static PuzzleManager Instance { get; private set; }
 
+    [Header("Completed Puzzles")]
+    public NetworkVariable<bool> BoneCollected = new(false);
+    public NetworkVariable<bool> FireStoked = new(false);
+
     [Header("Puzzle Settings")]
     public List<Grave> Graves = new();
     public NetworkVariable<int> CorrectGraveIndex = new(0);
+    public NetworkVariable<int> PlanksCollected = new(0);
+    public int PlanksToCollect = 7;
 
     #region Unity Functions
     private void Awake()
@@ -33,5 +39,16 @@ public class PuzzleManager : NetworkBehaviour
     public bool IsCorrectGrave(Grave grave)
     {
         return Graves.IndexOf(grave) == CorrectGraveIndex.Value;
+    }
+
+    [Rpc(SendTo.Server)]
+    public void CollectPlankServerRpc()
+    {
+        PlanksCollected.Value++;
+
+        if(PlanksCollected.Value >= PlanksToCollect)
+        {
+            FireStoked.Value = true;
+        }
     }
 }

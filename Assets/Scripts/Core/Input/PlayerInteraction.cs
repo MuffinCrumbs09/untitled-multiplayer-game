@@ -1,4 +1,5 @@
 using System;
+using Unity.AppUI.UI;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -35,13 +36,13 @@ public class PlayerInteraction : NetworkBehaviour
     {
         if (curInteraction != prevInteraction)
         {
-            if (prevInteraction is Grave prevGrave)
+            if (prevInteraction is IPopUp prevPopUp)
             {
-                prevGrave.ToggleUI(false);
+                prevPopUp.ToggleUI(false);
             }
-            if (curInteraction is Grave grave)
+            if (curInteraction is IPopUp curPopUp)
             {
-                grave.ToggleUI(true);
+                curPopUp.ToggleUI(true);
             }
 
             prevInteraction = curInteraction;
