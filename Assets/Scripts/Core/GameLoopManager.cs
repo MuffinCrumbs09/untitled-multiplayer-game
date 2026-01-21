@@ -28,6 +28,8 @@ public class GameLoopManager : NetworkBehaviour
     public NetworkVariable<FixedString64Bytes> WinnerMessage =
         new NetworkVariable<FixedString64Bytes>("");
 
+    public PuzzleManager PuzzleManager;
+
     private List<HealthComponent> _activeSurvivors = new List<HealthComponent>();
 
     private void Awake()

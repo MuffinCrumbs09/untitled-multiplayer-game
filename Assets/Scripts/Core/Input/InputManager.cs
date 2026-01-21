@@ -118,4 +118,12 @@ public class InputManager : MonoBehaviour
         onCameraZoom = null;
         onToggleHandViewStarted = null;
     }
+
+    internal void ToggleMovement(bool toggle)
+    {
+        if (toggle)
+            _actions.Player.Enable();
+        else
+            _actions.Player.Disable();
+    }
 }
