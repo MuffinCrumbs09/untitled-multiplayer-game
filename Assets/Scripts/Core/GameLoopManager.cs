@@ -146,7 +146,7 @@ public class GameLoopManager : NetworkBehaviour
         }
     }
 
-    private void EndGame(string message)
+    public void EndGame(string message)
     {
         IsGameOver.Value = true;
         WinnerMessage.Value = message;

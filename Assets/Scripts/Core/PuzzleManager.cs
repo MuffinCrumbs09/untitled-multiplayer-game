@@ -10,12 +10,15 @@ public class PuzzleManager : NetworkBehaviour
     [Header("Completed Puzzles")]
     public NetworkVariable<bool> BoneCollected = new(false);
     public NetworkVariable<bool> FireStoked = new(false);
+    public NetworkVariable<bool> StatuesDestroyed = new(false);
 
     [Header("Puzzle Settings")]
     public List<Grave> Graves = new();
     public NetworkVariable<int> CorrectGraveIndex = new(0);
     public NetworkVariable<int> PlanksCollected = new(0);
+    public NetworkVariable<int> TotalStatuesDestroyed = new(0);
     public int PlanksToCollect = 7;
+    public Statue[] Statues;
 
     #region Unity Functions
     private void Awake()
@@ -49,6 +52,19 @@ public class PuzzleManager : NetworkBehaviour
         if(PlanksCollected.Value >= PlanksToCollect)
         {
             FireStoked.Value = true;
+        }
+    }
+
+    [Rpc(SendTo.Server)]
+    public void DestroyStatueServerRpc(int statue)
+    {
+        TotalStatuesDestroyed.Value++;
+
+        Statues[statue].DestroyStatue();
+
+        if(TotalStatuesDestroyed.Value == 4)
+        {
+            StatuesDestroyed.Value = true;
         }
     }
 }
