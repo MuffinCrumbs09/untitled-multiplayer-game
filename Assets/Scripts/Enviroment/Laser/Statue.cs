@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Netcode;
 
 public class Statue : MonoBehaviour
 {
@@ -15,12 +16,13 @@ public class Statue : MonoBehaviour
 
     private void Update()
     {
-        if (isBeingBeamed)
+        if (isBeingBeamed && NetworkManager.Singleton.IsServer)
         {
             beamTimer += Time.deltaTime;
 
             if (beamTimer >= beamDurationRequired)
             {
+                DestroyStatue();
                 GameLoopManager.Instance.PuzzleManager.DestroyStatueServerRpc(statueIndex);
                 isBeingBeamed = false;
                 beamTimer = 0f;

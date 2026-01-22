@@ -8,7 +8,7 @@ public class RotateLaser : NetworkBehaviour, IInteractable, IPopUp
     public InteractUI interactUI;
     public float rotationSpeed = 2f;
 
-    private int currentPoint = 0;
+    public NetworkVariable<int> currentPoint = new(0);
 
     public bool CanInteract()
     {
@@ -49,11 +49,19 @@ public class RotateLaser : NetworkBehaviour, IInteractable, IPopUp
     [Rpc(SendTo.Server)]
     private void InteractServerRpc()
     {
-        currentPoint++;
-        if (currentPoint >= rotationPoints.Length)
-            currentPoint = 0;
+        currentPoint.Value++;
+        if (currentPoint.Value >= rotationPoints.Length)
+            currentPoint.Value = 0;
 
-        StartCoroutine(SmoothRotate(rotationPoints[currentPoint]));
+        Vector3 targetRotation = rotationPoints[currentPoint.Value];
+        StartCoroutine(SmoothRotate(targetRotation));
+        InteractClientRpc(targetRotation);
+    }
+
+    [Rpc(SendTo.NotServer)]
+    private void InteractClientRpc(Vector3 targetRotation)
+    {
+        StartCoroutine(SmoothRotate(targetRotation));
     }
 
     private System.Collections.IEnumerator SmoothRotate(Vector3 targetRotation)

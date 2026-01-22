@@ -59,12 +59,17 @@ public class PuzzleManager : NetworkBehaviour
     public void DestroyStatueServerRpc(int statue)
     {
         TotalStatuesDestroyed.Value++;
-
-        Statues[statue].DestroyStatue();
+        DestroyStatueClientRpc(statue);
 
         if(TotalStatuesDestroyed.Value == 4)
         {
             StatuesDestroyed.Value = true;
         }
+    }
+
+    [Rpc(SendTo.NotServer)]
+    private void DestroyStatueClientRpc(int statue)
+    {
+        Statues[statue].DestroyStatue();
     }
 }

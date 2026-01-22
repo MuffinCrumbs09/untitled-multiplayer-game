@@ -4,7 +4,7 @@ using Unity.Netcode;
 public class Plank : NetworkBehaviour, IInteractable, IPopUp
 {
     public NetworkVariable<bool> Searched = new(false);
-    public InteractUI interactUI;   
+    public InteractUI interactUI;
 
     public bool CanInteract()
     {
@@ -47,6 +47,14 @@ public class Plank : NetworkBehaviour, IInteractable, IPopUp
     private void InteractServerRpc()
     {
         Searched.Value = true;
+        transform.parent.gameObject.GetComponent<Collider>().enabled = false;
+        transform.parent.gameObject.GetComponent<MeshRenderer>().enabled = false;
+        InteractClientRpc();
+    }
+
+    [Rpc(SendTo.NotServer)]
+    private void InteractClientRpc()
+    {
         transform.parent.gameObject.GetComponent<Collider>().enabled = false;
         transform.parent.gameObject.GetComponent<MeshRenderer>().enabled = false;
     }

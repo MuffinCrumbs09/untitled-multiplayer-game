@@ -42,8 +42,19 @@ public class Grave : NetworkBehaviour, IInteractable, IPopUp
         local.GetComponent<Animator>().SetTrigger("Stop");
 
         InputManager.Instance.ToggleMovement(true);
+        FinishServerRpc();
+    }
 
-        if(GameLoopManager.Instance.PuzzleManager.IsCorrectGrave(this))
+    [Rpc(SendTo.Server)]
+    private void InteractServerRpc()
+    {
+        Searched.Value = true;
+    }
+
+    [Rpc(SendTo.Server)]
+    private void FinishServerRpc()
+    {
+        if (GameLoopManager.Instance.PuzzleManager.IsCorrectGrave(this))
         {
             Debug.Log("Found the correct grave!");
             GameLoopManager.Instance.PuzzleManager.BoneCollected.Value = true;
@@ -59,17 +70,11 @@ public class Grave : NetworkBehaviour, IInteractable, IPopUp
     }
 
     [Rpc(SendTo.Server)]
-    private void InteractServerRpc()
-    {
-        Searched.Value = true;
-    }
-
-    [Rpc(SendTo.Server)]
     private void SpawnEnemyServerRpc()
     {
         Vector3 spawnPos = transform.position + Vector3.up * 0.5f;
         GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
-        
+
         if (enemy.TryGetComponent<NetworkObject>(out var networkObject))
         {
             networkObject.Spawn();
