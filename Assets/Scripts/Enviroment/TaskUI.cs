@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
@@ -12,17 +13,42 @@ public class TaskUI : MonoBehaviour
 
     private void Start()
     {
-        if (itemType == ItemType.Fire)
+        switch (itemType)
         {
-            GameLoopManager.Instance.PuzzleManager.PlanksCollected.OnValueChanged += UpdateFireTask;
+            case ItemType.Fire:
+                GameLoopManager.Instance.PuzzleManager.PlanksCollected.OnValueChanged += UpdateFireTask;
+                break;
+            case ItemType.Bone:
+                GameLoopManager.Instance.PuzzleManager.BoneCollected.OnValueChanged += FinishTask;
+                break;
+            case ItemType.Jewel:
+                GameLoopManager.Instance.PuzzleManager.StatuesDestroyed.OnValueChanged += FinishTask;
+                break;
+        }
+    }
+
+    private void FinishTask(bool previousValue, bool newValue)
+    {
+        if (newValue && playerInTrigger)
+        {
+            taskText.text = "<s>" + taskText.text + "</s>";
+            taskText.color = Color.green;
         }
     }
 
     private void OnDestroy()
     {
-        if (itemType == ItemType.Fire && GameLoopManager.Instance?.PuzzleManager != null)
+        switch (itemType)
         {
-            GameLoopManager.Instance.PuzzleManager.PlanksCollected.OnValueChanged -= UpdateFireTask;
+            case ItemType.Fire:
+                GameLoopManager.Instance.PuzzleManager.PlanksCollected.OnValueChanged += UpdateFireTask;
+                break;
+            case ItemType.Bone:
+                GameLoopManager.Instance.PuzzleManager.BoneCollected.OnValueChanged += FinishTask;
+                break;
+            case ItemType.Jewel:
+                GameLoopManager.Instance.PuzzleManager.StatuesDestroyed.OnValueChanged += FinishTask;
+                break;
         }
     }
 
@@ -96,6 +122,7 @@ public class TaskUI : MonoBehaviour
             {
                 playerInTrigger = false;
                 taskText.text = "";
+                taskText.color = Color.black;
             }
         }
     }

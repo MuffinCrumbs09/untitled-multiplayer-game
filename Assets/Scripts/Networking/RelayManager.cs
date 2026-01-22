@@ -72,7 +72,20 @@ public class RelayManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        await UnityServices.InitializeAsync();
+        // Create initialization options to handle profile switching
+        InitializationOptions options = new InitializationOptions();
+
+#if UNITY_EDITOR
+        // In Editor, we generally want the default profile (or ParrelSync handles it).
+        // No specific profile set needed here usually.
+#else
+        // In Builds, generate a random profile ID.
+        // This ensures every build instance on the same machine gets a unique Identity/PlayerID.
+        // Without this, 2 builds on 1 PC look like the same user to the Lobby Service, causing Quick Join to fail.
+        options.SetProfile("Build_" + UnityEngine.Random.Range(0, 10000).ToString());
+#endif
+
+        await UnityServices.InitializeAsync(options);
 
         if (!AuthenticationService.Instance.IsSignedIn)
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
