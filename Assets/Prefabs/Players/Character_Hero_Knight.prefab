@@ -116,8 +116,9 @@ GameObject:
   - component: {fileID: 7731304405042806202}
   - component: {fileID: 6637725896230460826}
   - component: {fileID: 8272464622649320981}
+  - component: {fileID: -2982686538189508908}
   m_Layer: 6
-  m_Name: Character_Hero_Knight_Male
+  m_Name: Character_Hero_Knight
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -414,6 +415,23 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 0
+--- !u!114 &-2982686538189508908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366617858761259032}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bacdabd9b7bd75249b3222c39a06c034, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  skinRegistry: {fileID: 11400000, guid: 0b4cd04c455fb6b4f826dc1586ffbc23, type: 2}
+  targetRenderer: {fileID: 4107430097860593244}
+  netSkinIndex:
+    m_InternalValue: 0
 --- !u!1 &517611611664314157
 GameObject:
   m_ObjectHideFlags: 0
@@ -1929,7 +1947,7 @@ GameObject:
   - component: {fileID: 6245718549261306009}
   - component: {fileID: 4107430097860593244}
   m_Layer: 7
-  m_Name: Character_Hero_Knight_Male
+  m_Name: Character_Hero_Knight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

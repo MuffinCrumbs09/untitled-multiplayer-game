@@ -15,7 +15,8 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
 {
     public NetString username;
     public ulong clientID;
-    public PlayerRole role; // The selected role
+    public PlayerRole role;
+    public int skinIndex; // Added for customization
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer)
         where T : IReaderWriter
@@ -26,6 +27,7 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
             reader.ReadValueSafe(out username);
             reader.ReadValueSafe(out clientID);
             reader.ReadValueSafe(out role);
+            reader.ReadValueSafe(out skinIndex);
         }
         else
         {
@@ -33,6 +35,7 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
             writer.WriteValueSafe(username);
             writer.WriteValueSafe(clientID);
             writer.WriteValueSafe(role);
+            writer.WriteValueSafe(skinIndex);
         }
     }
 
@@ -40,13 +43,15 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
     {
         return other.clientID == clientID &&
                other.role == role &&
+               other.skinIndex == skinIndex &&
                other.username.Equals(this.username);
     }
 
-    public NetPlayerData(NetString user, ulong id, PlayerRole r)
+    public NetPlayerData(NetString user, ulong id, PlayerRole r, int skin = 0)
     {
         username = user;
         clientID = id;
         role = r;
+        skinIndex = skin;
     }
 }

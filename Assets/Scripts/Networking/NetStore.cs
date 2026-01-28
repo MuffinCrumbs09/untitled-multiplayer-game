@@ -40,6 +40,9 @@ public class NetStore : NetworkBehaviour
         ulong senderId = rpc.Receive.SenderClientId;
         data.clientID = senderId;
 
+        // Default skin index is 0
+        data.skinIndex = 0;
+
         if (senderId == 0 && !IsGodSlotOccupied())
         {
             data.role = PlayerRole.God;
@@ -94,6 +97,24 @@ public class NetStore : NetworkBehaviour
             if (!IsGodSlotOccupied())
             {
                 ApplyRoleChange(clientId, newRole);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the skin index for a specific player.
+    /// </summary>
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void UpdatePlayerSkinServerRpc(ulong clientId, int newSkinIndex)
+    {
+        for (int i = 0; i < playerData.Count; i++)
+        {
+            if (playerData[i].clientID == clientId)
+            {
+                var updatedData = playerData[i];
+                updatedData.skinIndex = newSkinIndex;
+                playerData[i] = updatedData;
+                break;
             }
         }
     }

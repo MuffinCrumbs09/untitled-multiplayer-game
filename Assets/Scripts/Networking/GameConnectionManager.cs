@@ -49,7 +49,9 @@ public class GameConnectionManager : MonoBehaviour
     private void SpawnCorrectPlayer(ulong clientId)
     {
         GameObject prefabToSpawn = survivorPrefab;
+        int selectedSkinIndex = 0;
 
+        // 1. Retrieve Data from NetStore
         if (NetStore.Instance != null)
         {
             foreach (var data in NetStore.Instance.playerData)
@@ -59,6 +61,11 @@ public class GameConnectionManager : MonoBehaviour
                     if (data.role == PlayerRole.God)
                     {
                         prefabToSpawn = godPrefab;
+                    }
+                    else
+                    {
+                        // It's a survivor, get their skin choice
+                        selectedSkinIndex = data.skinIndex;
                     }
                     break;
                 }
@@ -70,11 +77,20 @@ public class GameConnectionManager : MonoBehaviour
             if (clientId == 0) prefabToSpawn = godPrefab;
         }
 
+        // 2. Instantiate and Spawn
         GameObject instance = Instantiate(prefabToSpawn);
         instance.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
 
+        // 3. Apply Survivor Specific Logic
         if (prefabToSpawn == survivorPrefab)
         {
+            // Apply Skin
+            if (instance.TryGetComponent<PlayerSkinController>(out var skinCtrl))
+            {
+                skinCtrl.SetSkin(selectedSkinIndex);
+            }
+
+            // Register Health
             if (GameLoopManager.Instance != null)
             {
                 var health = instance.GetComponent<HealthComponent>();

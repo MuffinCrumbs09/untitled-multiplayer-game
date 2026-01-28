@@ -627,7 +627,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a560b26510f43fd4ba2c36d38b2e32d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAnimation
-  baseRunSpeed: 4
+  baseRunSpeed: 5
   smoothingSpeed: 5
   injuryStartThreshold: 0.6
   injuryMaxThreshold: 0.3

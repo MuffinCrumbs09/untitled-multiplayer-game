@@ -40,6 +40,10 @@ public class RelayManager : MonoBehaviour
     [Tooltip("Button to start the gameplay scene (Host only).")]
     private Button startGameButton;
 
+    [SerializeField]
+    [Tooltip("Text component inside the Start Game button to show status.")]
+    private TMP_Text startGameButtonText;
+
     [Header("Lobby Settings")]
     [SerializeField]
     [Tooltip("Toggle to determine if the lobby is publicly searchable.")]
@@ -112,6 +116,12 @@ public class RelayManager : MonoBehaviour
                 RestoreLobbyState();
             }
         }
+
+        // Listen for player list changes to validate game start conditions
+        if (NetStore.Instance != null)
+        {
+            NetStore.Instance.playerData.OnListChanged += HandlePlayerListChanged;
+        }
     }
 
     private void RestoreLobbyState()
@@ -122,6 +132,7 @@ public class RelayManager : MonoBehaviour
         if (NetworkManager.Singleton.IsHost && startGameButton != null)
         {
             startGameButton.gameObject.SetActive(true);
+            ValidateGameStart();
         }
     }
 
@@ -135,6 +146,42 @@ public class RelayManager : MonoBehaviour
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.OnConnectionEvent -= ConnectionEvent;
+        }
+
+        if (NetStore.Instance != null)
+        {
+            NetStore.Instance.playerData.OnListChanged -= HandlePlayerListChanged;
+        }
+    }
+
+    private void HandlePlayerListChanged(NetworkListEvent<NetPlayerData> changeEvent)
+    {
+        if (NetworkManager.Singleton.IsHost)
+        {
+            ValidateGameStart();
+        }
+    }
+
+    private void ValidateGameStart()
+    {
+        if (startGameButton == null) return;
+
+        bool hasGod = false;
+        foreach (var player in NetStore.Instance.playerData)
+        {
+            if (player.role == PlayerRole.God)
+            {
+                hasGod = true;
+                break;
+            }
+        }
+
+        startGameButton.interactable = hasGod;
+
+        if (startGameButtonText != null)
+        {
+            startGameButtonText.text = hasGod ? "START GAME" : "NEED GOD";
+            startGameButtonText.color = hasGod ? Color.white : Color.red;
         }
     }
 
@@ -165,10 +212,15 @@ public class RelayManager : MonoBehaviour
             CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
 
             if (startGameButton != null)
+            {
                 startGameButton.gameObject.SetActive(true);
+                // Initial validation
+                ValidateGameStart();
+            }
 
             string sUser = string.IsNullOrEmpty(username.text) ? "Host" : username.text;
-            NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, 0, PlayerRole.God));
+            // Updated constructor to include default skin index 0
+            NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, 0, PlayerRole.God, 0));
         }
         catch (Exception e)
         {
@@ -268,7 +320,8 @@ public class RelayManager : MonoBehaviour
             {
                 ulong playerNum = data.ClientId + 1;
                 string sUser = string.IsNullOrEmpty(username.text) ? $"Player {playerNum}" : username.text;
-                NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, data.ClientId, PlayerRole.Survivor));
+                // Updated constructor to include default skin index 0
+                NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, data.ClientId, PlayerRole.Survivor, 0));
             }
 
             CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
@@ -276,6 +329,7 @@ public class RelayManager : MonoBehaviour
             if (manager.IsHost && startGameButton != null)
             {
                 startGameButton.gameObject.SetActive(true);
+                ValidateGameStart();
             }
         }
         else if (data.EventType == Unity.Netcode.ConnectionEvent.ClientDisconnected)

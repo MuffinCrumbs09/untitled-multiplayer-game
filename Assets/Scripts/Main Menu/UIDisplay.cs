@@ -14,6 +14,10 @@ public class UIDisplay : MonoBehaviour
     [Tooltip("The text component displaying the list of players.")]
     private TMP_Text usernameText;
 
+    [SerializeField]
+    [Tooltip("Text component displaying the local player's specific role.")]
+    private TMP_Text localRoleText;
+
     [Header("Interaction")]
     [SerializeField]
     [Tooltip("The button used to swap between God and Survivor roles.")]
@@ -74,6 +78,7 @@ public class UIDisplay : MonoBehaviour
         if (NetStore.Instance == null) return;
 
         List<string> lines = new();
+        ulong localId = NetworkManager.Singleton != null ? NetworkManager.Singleton.LocalClientId : 9999;
 
         foreach (NetPlayerData data in NetStore.Instance.playerData)
         {
@@ -83,6 +88,19 @@ public class UIDisplay : MonoBehaviour
                 : "(Survivor)";
 
             lines.Add($"<color={color}>{data.username} {label}</color>");
+
+            // Update Local Role Text if this is us
+            if (data.clientID == localId && localRoleText != null)
+            {
+                if (data.role == PlayerRole.God)
+                {
+                    localRoleText.text = "YOU ARE THE <color=red>GOD</color>";
+                }
+                else
+                {
+                    localRoleText.text = "YOU ARE A <color=green>SURVIVOR</color>";
+                }
+            }
         }
 
         usernameText.text = string.Join("\n", lines);
