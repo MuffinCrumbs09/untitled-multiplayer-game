@@ -79,7 +79,7 @@ public class EnemyController : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsServer) return;
+        if (!IsServer || _health.IsDead) return;
 
         // 1. Sync Movement State
         // We check the Movement component to see if it's actually moving

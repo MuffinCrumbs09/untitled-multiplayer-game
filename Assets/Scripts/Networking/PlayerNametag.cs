@@ -46,7 +46,7 @@ public class PlayerNametag : NetworkBehaviour
         if (NetStore.Instance == null) return;
 
         // Use 1-based indexing for the fallback name to match RelayManager.
-        string finalName = $"Player {OwnerClientId + 1}";
+        string finalName = "Joining...";
 
         // Search for matching ID
         foreach (var data in NetStore.Instance.playerData)

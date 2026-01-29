@@ -28,7 +28,7 @@ public class PlayerNameDisplay : NetworkBehaviour
         if (IsServer)
         {
             // Use 1-based indexing for the fallback name to match RelayManager.
-            string foundName = $"Player {OwnerClientId + 1}";
+            string foundName = "Joining...";
 
             if (NetStore.Instance != null)
             {

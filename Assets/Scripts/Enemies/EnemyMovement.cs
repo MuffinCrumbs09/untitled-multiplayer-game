@@ -18,6 +18,7 @@ public class EnemyMovement : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
 
     private NavMeshAgent _agent;
+    private HealthComponent _health;
 
     public bool IsMoving => _agent.enabled && _agent.velocity.sqrMagnitude > 0.1f;
     public float AngularSpeed => _agent.angularSpeed;
@@ -25,6 +26,7 @@ public class EnemyMovement : MonoBehaviour
     private void Awake()
     {
         _agent = GetComponent<NavMeshAgent>();
+        _health = GetComponent<HealthComponent>();
         _agent.stoppingDistance = 0;
         _agent.updateRotation = false;
     }
@@ -60,6 +62,8 @@ public class EnemyMovement : MonoBehaviour
 
     public void RotateTowards(Vector3 targetPosition)
     {
+        if (_health != null && _health.IsDead) return;
+
         Vector3 lookDirection;
 
         if (IsMoving)

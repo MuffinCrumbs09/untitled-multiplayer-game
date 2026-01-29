@@ -13,9 +13,10 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+//abcdefg
 /// <summary>
-/// Manages connection to Unity Relay and Lobby services, handles UI for 
-/// session creation/joining, and manages scene transitions.
+/// Manages connection to Unity Relay and Lobby services.
+/// Handles UI for session creation, joining, and role validation.
 /// </summary>
 public class RelayManager : MonoBehaviour
 {
@@ -72,20 +73,12 @@ public class RelayManager : MonoBehaviour
 
     private async void Start()
     {
-        // Force cursor unlock to ensure menu usability after returning from game
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // Create initialization options to handle profile switching
         InitializationOptions options = new InitializationOptions();
 
-#if UNITY_EDITOR
-        // In Editor, we generally want the default profile (or ParrelSync handles it).
-        // No specific profile set needed here usually.
-#else
-        // In Builds, generate a random profile ID.
-        // This ensures every build instance on the same machine gets a unique Identity/PlayerID.
-        // Without this, 2 builds on 1 PC look like the same user to the Lobby Service, causing Quick Join to fail.
+#if !UNITY_EDITOR
         options.SetProfile("Build_" + UnityEngine.Random.Range(0, 10000).ToString());
 #endif
 
@@ -110,14 +103,12 @@ public class RelayManager : MonoBehaviour
         {
             NetworkManager.Singleton.OnConnectionEvent += ConnectionEvent;
 
-            // Restore UI state if returning to menu while still connected
             if (NetworkManager.Singleton.IsListening)
             {
                 RestoreLobbyState();
             }
         }
 
-        // Listen for player list changes to validate game start conditions
         if (NetStore.Instance != null)
         {
             NetStore.Instance.playerData.OnListChanged += HandlePlayerListChanged;
@@ -214,12 +205,10 @@ public class RelayManager : MonoBehaviour
             if (startGameButton != null)
             {
                 startGameButton.gameObject.SetActive(true);
-                // Initial validation
                 ValidateGameStart();
             }
 
-            string sUser = string.IsNullOrEmpty(username.text) ? "Host" : username.text;
-            // Updated constructor to include default skin index 0
+            string sUser = username != null ? username.text : "";
             NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, 0, PlayerRole.God, 0));
         }
         catch (Exception e)
@@ -286,11 +275,27 @@ public class RelayManager : MonoBehaviour
 
     #region Scene & Cleanup
 
-    private void QuitLobby()
+    private async void QuitLobby()
     {
-        if (_currentLobby != null && NetworkManager.Singleton.IsHost)
+        try
         {
-            LobbyService.Instance.DeleteLobbyAsync(_currentLobby.Id);
+            if (_currentLobby != null)
+            {
+                if (NetworkManager.Singleton.IsHost)
+                {
+                    await LobbyService.Instance.DeleteLobbyAsync(_currentLobby.Id);
+                }
+                else
+                {
+                    // Explicitly remove the local player from the lobby service
+                    await LobbyService.Instance.RemovePlayerAsync(_currentLobby.Id, AuthenticationService.Instance.PlayerId);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            // Catch errors if the lobby was already closed or player already removed
+            Debug.LogWarning($"Lobby cleanup error: {e.Message}");
         }
 
         if (NetStore.Instance != null) Destroy(NetStore.Instance.gameObject);
@@ -318,9 +323,7 @@ public class RelayManager : MonoBehaviour
 
             if (!manager.IsHost)
             {
-                ulong playerNum = data.ClientId + 1;
-                string sUser = string.IsNullOrEmpty(username.text) ? $"Player {playerNum}" : username.text;
-                // Updated constructor to include default skin index 0
+                string sUser = username != null ? username.text : "";
                 NetStore.Instance.AddPlayerDataServerRpc(new NetPlayerData(sUser, data.ClientId, PlayerRole.Survivor, 0));
             }
 

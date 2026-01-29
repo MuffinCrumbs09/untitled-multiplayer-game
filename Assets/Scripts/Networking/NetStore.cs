@@ -52,6 +52,19 @@ public class NetStore : NetworkBehaviour
             data.role = PlayerRole.Survivor;
         }
 
+        // Handle default name if none provided
+        if (string.IsNullOrEmpty(data.username.ToString()))
+        {
+            if (data.role == PlayerRole.God)
+            {
+                data.username = "Host";
+            }
+            else
+            {
+                data.username = GetAvailablePlayerName();
+            }
+        }
+
         bool exists = false;
         foreach (var p in playerData)
         {
@@ -61,6 +74,27 @@ public class NetStore : NetworkBehaviour
         if (!exists)
         {
             playerData.Add(data);
+        }
+    }
+
+    private string GetAvailablePlayerName()
+    {
+        int playerNum = 2; // Start from 2 since 1 is usually host
+        while (true)
+        {
+            string candidateName = $"Player {playerNum}";
+            bool nameTaken = false;
+            foreach (var p in playerData)
+            {
+                if (p.username.ToString() == candidateName)
+                {
+                    nameTaken = true;
+                    break;
+                }
+            }
+
+            if (!nameTaken) return candidateName;
+            playerNum++;
         }
     }
 
