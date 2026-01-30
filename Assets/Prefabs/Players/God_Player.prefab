@@ -933,15 +933,20 @@ MonoBehaviour:
   - name: Goblin
     prefab: {fileID: 1302187876061893724, guid: 66123d515c8948f41bb893eb7e90e826, type: 3}
     energyCost: 4
+    canSpawnInNoSpawnZones: 0
   - name: Skeleton Knight
     prefab: {fileID: 3518418817594089877, guid: cccf61b94dab6b94684c42c0681482fa, type: 3}
     energyCost: 6
+    canSpawnInNoSpawnZones: 0
   - name: Poison
     prefab: {fileID: 217492335165866186, guid: d9fe71ce24325ff4c9b7f2963dc0ace2, type: 3}
     energyCost: 7
+    canSpawnInNoSpawnZones: 1
   _groundLayer:
     serializedVersion: 2
     m_Bits: 8
+  minDistanceFromSurvivors: 10
+  noSpawnZones: []
 --- !u!114 &3900077846956016322
 MonoBehaviour:
   m_ObjectHideFlags: 0

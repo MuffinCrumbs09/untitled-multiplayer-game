@@ -10,11 +10,16 @@ public class CurseInteractionManager : NetworkBehaviour
         public string name;
         public GameObject prefab;
         public float energyCost;
+        public bool canSpawnInNoSpawnZones;
     }
 
     [Header("Configuration")]
     [SerializeField] private SpawnOption[] spawnOptions;
     [SerializeField] private LayerMask _groundLayer;
+
+    [Header("Spawn Restrictions")]
+    [SerializeField] private float minDistanceFromSurvivors = 10f;
+    [SerializeField] private NoSpawnZone[] noSpawnZones;
 
     private Camera _mainCamera;
     private int _currentSelectionIndex = 0;
@@ -24,6 +29,11 @@ public class CurseInteractionManager : NetworkBehaviour
     {
         _mainCamera = Camera.main;
         _energySystem = GetComponent<CurseEnergySystem>();
+
+        if (noSpawnZones == null || noSpawnZones.Length == 0)
+        {
+            noSpawnZones = FindObjectsByType<NoSpawnZone>(FindObjectsSortMode.None);
+        }
     }
 
     private void Update()
@@ -89,8 +99,53 @@ public class CurseInteractionManager : NetworkBehaviour
 
         if (Physics.Raycast(ray, out hit, Mathf.Infinity, _groundLayer))
         {
+            if (IsPositionTooCloseToSurvivors(hit.point))
+            {
+                Debug.Log("Cannot spawn enemy too close to survivors!");
+                return;
+            }
+
+bool canBypassNoSpawnZones = spawnOptions[_currentSelectionIndex].canSpawnInNoSpawnZones;
+            
+            if (!canBypassNoSpawnZones && IsPositionInNoSpawnZone(hit.point))
+            {
+                Debug.Log("Cannot spawn enemies in protected zones!");
+                return;
+            }
+
             SpawnEnemyServerRpc(hit.point, _currentSelectionIndex);
         }
+    }
+
+    private bool IsPositionTooCloseToSurvivors(Vector3 spawnPosition)
+    {
+        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+
+        foreach (GameObject player in players)
+        {
+            float distance = Vector3.Distance(spawnPosition, player.transform.position);
+            if (distance < minDistanceFromSurvivors)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsPositionInNoSpawnZone(Vector3 position)
+    {
+        if (noSpawnZones == null) return false;
+
+        foreach (NoSpawnZone zone in noSpawnZones)
+        {
+            if (zone != null && zone.IsPositionInside(position))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     [Rpc(SendTo.Server)]
