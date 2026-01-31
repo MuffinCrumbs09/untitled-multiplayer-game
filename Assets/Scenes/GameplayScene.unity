@@ -23117,6 +23117,10 @@ PrefabInstance:
       propertyPath: mazeRadius
       value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 5722801605728590608, guid: fb417a25c88b3fa41b63c7664e62691e, type: 3}
+      propertyPath: supressGenOnStart
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

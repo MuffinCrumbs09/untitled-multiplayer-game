@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 using Vector3 = UnityEngine.Vector3;
-using Unity.AI.Navigation;
+//using Unity.AI.Navigation;
 
 public class HexMaze_Manager : MonoBehaviour
 {
@@ -17,6 +17,9 @@ public class HexMaze_Manager : MonoBehaviour
     public uint mazeRadius = 3;
     //public NavMeshSurface surface;
     public float magicNumber;
+    public uint RandomSeed = 666;
+    public bool supressGenOnStart = false;
+    private Unity.Mathematics.Random random;
 
     private const float offset = 5.2f;
     private Mesh _meshTile;
@@ -69,9 +72,9 @@ public class HexMaze_Manager : MonoBehaviour
     private HexTile CoreTile = new();
 
     
-    public GraphicsBuffer tilePositionBuffer;
-    public GraphicsBuffer wallPositionBuffer;
-    public GraphicsBuffer PlayerPositionBuffer;
+    private GraphicsBuffer tilePositionBuffer;
+    private GraphicsBuffer wallPositionBuffer;
+    private GraphicsBuffer PlayerPositionBuffer;
     private List<HexTile> hexGrid;
     //private LinkedList<HexTile> hexLinks;
 
@@ -97,8 +100,8 @@ public class HexMaze_Manager : MonoBehaviour
     {
         //CoreTile.TileObject = gameObject;
         
-        
-        InitMaze();
+        if (!supressGenOnStart)
+            InitMaze();
     }
 
     int HexVec3ToIndex(Vector2Int hexCoord) {
@@ -194,12 +197,14 @@ public class HexMaze_Manager : MonoBehaviour
         return -1;
     }
 
-    void InitMaze() {
+    public void InitMaze() {
 
         if (!Application.isPlaying)
         {
             return;
         }
+        
+        random = new Unity.Mathematics.Random(RandomSeed);
 
             //cleanUp
         foreach (Transform child in transform)
@@ -306,7 +311,7 @@ public class HexMaze_Manager : MonoBehaviour
                         killing = false;
                         if (nextVictims.Length > 0)
                         {
-                            HexLink victimWall = nextVictims[UnityEngine.Random.Range(0, nextVictims.Length)];
+                            HexLink victimWall = nextVictims[random.NextInt(nextVictims.Length)];
                             victimWall.solid = false;
                             victim = victimWall.Next(victim);
                             killing = true;
@@ -328,7 +333,7 @@ public class HexMaze_Manager : MonoBehaviour
                 edgeWallCount++;
             }
         }
-        hexLinksEdge[UnityEngine.Random.Range(0, edgeWallCount)].solid = false;
+        hexLinksEdge[random.NextInt(edgeWallCount)].solid = false;
         
         //collsion
         solidWalls = 0;
