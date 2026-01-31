@@ -24,6 +24,9 @@ public class TaskUI : MonoBehaviour
             case ItemType.Jewel:
                 GameLoopManager.Instance.PuzzleManager.StatuesDestroyed.OnValueChanged += FinishTask;
                 break;
+            case ItemType.Maze:
+                GameLoopManager.Instance.PuzzleManager.MazeComplete.OnValueChanged += FinishTask;
+                break;
         }
     }
 
@@ -96,6 +99,9 @@ public class TaskUI : MonoBehaviour
                         break;
                     case ItemType.Jewel:
                         finishedTask = GameLoopManager.Instance.PuzzleManager.StatuesDestroyed.Value;
+                        break;
+                    case ItemType.Maze:
+                        finishedTask = GameLoopManager.Instance.PuzzleManager.MazeComplete.Value;
                         break;
                 }
 

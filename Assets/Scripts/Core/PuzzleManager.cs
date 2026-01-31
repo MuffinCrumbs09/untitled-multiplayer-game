@@ -11,6 +11,7 @@ public class PuzzleManager : NetworkBehaviour
     public NetworkVariable<bool> BoneCollected = new(false);
     public NetworkVariable<bool> FireStoked = new(false);
     public NetworkVariable<bool> StatuesDestroyed = new(false);
+    public NetworkVariable<bool> MazeComplete = new(false);
 
     [Header("Puzzle Settings")]
     public List<Grave> Graves = new();

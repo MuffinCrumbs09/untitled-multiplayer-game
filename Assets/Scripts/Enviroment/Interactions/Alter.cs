@@ -5,7 +5,9 @@ public enum ItemType
 {
     Bone,
     Fire,
-    Jewel
+    Jewel,
+    Maze,
+    Alter
 }
 
 public class Alter : NetworkBehaviour, IInteractable, IPopUp
@@ -38,6 +40,9 @@ public class Alter : NetworkBehaviour, IInteractable, IPopUp
                 break;
             case ItemType.Jewel:
                 hasItem = GameLoopManager.Instance.PuzzleManager.StatuesDestroyed.Value;
+                break;
+            case ItemType.Maze:
+                hasItem = GameLoopManager.Instance.PuzzleManager.MazeComplete.Value;
                 break;
         }
 
