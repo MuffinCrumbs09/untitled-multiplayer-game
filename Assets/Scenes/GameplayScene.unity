@@ -15494,7 +15494,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52784a24cc994b84ca934db16f780c5e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  zoneSize: {x: 40.1, y: 10, z: 40.8}
+  zoneSize: {x: 62, y: 10, z: 68}
 --- !u!1001 &580875246
 PrefabInstance:
   m_ObjectHideFlags: 0
